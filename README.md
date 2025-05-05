@@ -8,4 +8,8 @@ This will create an open-source tool that eventually will be able to diagnose a 
 medical conditions or risk conditions. The idea is to create the "medical tricorder" from the original Star Trek
 television series.
 
+# Architecture
+
+![Librecorder](https://github.com/user-attachments/assets/6b981346-d832-4b1f-b75a-c0060d920960)
+
 
