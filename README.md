@@ -29,6 +29,11 @@ offer an ever-expanding set of diagnostic functions.
 
 ![Librecorder](https://github.com/user-attachments/assets/6b981346-d832-4b1f-b75a-c0060d920960)
 
+# References
+
+* The HealthyPI project is very similar to this project: [https://www.opensourceimaging.org/project/protocentral-healthypi/]( https://www.opensourceimaging.org/project/protocentral-healthypi/)
+  
+
 
 
 
