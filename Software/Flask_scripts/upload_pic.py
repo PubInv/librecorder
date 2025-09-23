@@ -12,7 +12,7 @@ def pick_and_upload():
 
     # Step 1: Pick a file
     path = filedialog.askopenfilename(
-        filetypes=[("JPEG images", "*.jpg;*.jpeg"), ("Text files", "*.txt"), ("All files", "*.*")]
+        filetypes=[("JPEG images", "*.jpg"), ("JPEG images", "*.jpeg"), ("Text files", "*.txt"), ("All files", "*.*")]
     )
     if not path:
         print("No file selected.")
@@ -60,6 +60,42 @@ def pick_and_upload():
             messagebox.showinfo("Note Added", f"Note uploaded to case {case_id}")
         else:
             messagebox.showerror("Note Upload Failed", r2.text)
+
+    # --- Automatically call processing if JPEG ---
+    ext = os.path.splitext(path)[1].lower()
+    if ext in [".jpg", ".jpeg"]:
+        proc_resp = requests.post(
+            f"{SERVER}/process",
+            data={
+                "case_id": case_id,
+                "filename": resp["filename"],
+                "processor": "mean_pixel"
+            }
+        )
+        if proc_resp.ok:
+            result = proc_resp.json().get("result")
+            print("Processing result:", result)
+            messagebox.showinfo("Processing Complete", f"Mean pixel: {result.get('mean_pixel')}")
+        else:
+            print("Processing failed:", proc_resp.text)
+            messagebox.showerror("Processing Failed", proc_resp.text)
+
+    note_text = simpledialog.askstring(
+        "Add Note",
+        "Enter a note to attach to this case (leave blank to skip):"
+    )
+
+    if note_text:
+        r2 = requests.post(
+            f"{SERVER}/upload",
+            files={"file": ("note.txt", note_text.encode("utf-8"), "text/plain")},
+            data={"case_id": case_id}
+        )
+        if r2.ok:
+            messagebox.showinfo("Note Added", f"Note uploaded to case {case_id}")
+        else:
+            messagebox.showerror("Note Upload Failed", r2.text)
+
 
     messagebox.showinfo("Upload Complete", f"File uploaded to case {case_id}")
     print("Response:", resp)

@@ -1,0 +1,16 @@
+name: librecorder
+channels:
+  - defaults
+  - conda-forge
+dependencies:
+  - python=3.13
+  - werkzeug
+  - flask
+  - requests
+  - opencv
+  - scipy
+  - numpy
+  - matplotlib
+  - seaborn
+  - scikit-learn
+prefix: /Users/royphillips/miniconda3/envs/librecorder

@@ -1,3 +1,4 @@
+# --- Generic processing endpoint ---
 import os
 import shutil
 from datetime import datetime
@@ -134,6 +135,40 @@ def purge_case(case_id):
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
+
+
+### code to call processing scripts on uploaded files
+import importlib.util
+@app.route("/process", methods=["POST"])
+def process_file():
+    data = request.form
+    case_id = data.get("case_id")
+    filename = data.get("filename")
+    processor = data.get("processor")
+
+    if not case_id or not filename or not processor:
+        return jsonify(error="case_id, filename, and processor required"), 400
+
+    file_path = os.path.join(UPLOAD_DIR, case_id, filename)
+    if not os.path.exists(file_path):
+        return jsonify(error="file not found"), 404
+
+    proc_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../processing", f"{processor}.py"))
+    if not os.path.exists(proc_path):
+        return jsonify(error=f"Processor script {processor}.py not found"), 404
+
+    try:
+        spec = importlib.util.spec_from_file_location(processor, proc_path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        if hasattr(mod, "process"):
+            result = mod.process(file_path)
+            return jsonify({"ok": True, "result": result})
+        else:
+            return jsonify(error=f"Processor {processor} has no 'process' function"), 400
+    except Exception as e:
+        return jsonify(error=f"Error running processor: {e}"), 500
+    
 # ------------------------------
 # MAIN
 # ------------------------------
