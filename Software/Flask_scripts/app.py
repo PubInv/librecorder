@@ -4,11 +4,12 @@ import shutil
 import time
 import threading
 from datetime import datetime
-from flask import Flask, request, jsonify, send_from_directory, abort, render_template
+from flask import Flask, request, jsonify, send_from_directory, abort, render_template, redirect, url_for, flash
 from werkzeug.utils import secure_filename
 import importlib.util
 from flask_cors import CORS
 from models import db, Case, TestResult
+
 
 UPLOAD_DIR = "uploads"
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".txt"}
@@ -35,6 +36,11 @@ def make_case_id():
 @app.route("/", methods=["GET"])
 def index():
     return render_template("dashboard.html")
+
+@app.route('/upload_image', methods = ['GET'])
+def upload_image_page():
+    """Render a browser-based image upload form."""
+    return render_template('upload.html')
 
 @app.route("/upload", methods=["POST"])
 def upload():

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Upload Image | LibreRecorder</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    body {
+      background: #ffa5ab;
+      font-family: "Segoe UI", sans-serif;
+      text-align: center;
+      padding: 3rem;
+    }
+    form {
+      background: white;
+      border-radius: 8px;
+      padding: 2rem;
+      display: inline-block;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    input[type=file] {
+      margin: 1rem 0;
+    }
+    button {
+      background: #450920;
+      color: #fff;
+      border: none;
+      padding: 0.7rem 1.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #7d3e23;
+    }
+  </style>
+</head>
+<body>
+  <h1>Upload Image to LibreRecorder</h1>
+<form id="uploadForm" enctype="multipart/form-data">
+  <label for="case_id">Case ID (leave blank for new):</label><br>
+  <input type="text" name="case_id" id="case_id" placeholder="case-optional"><br><br>
+
+  <label for="file">Select File:</label><br>
+  <input type="file" name="file" id="file" accept=".jpg,.jpeg,.png,.txt" required><br><br>
+
+  <label for="note">Add Note (optional):</label><br>
+  <textarea name="note" id="note" rows="3" cols="40" placeholder="Add an observation or context..."></textarea><br><br>
+
+  <label for="processor">Processing Option:</label><br>
+  <select id="processor" name="processor">
+    <option value="">None</option>
+    <option value="mean_pixel">Mean Pixel</option>
+  </select><br><br>
+
+  <button type="submit">Upload</button>
+</form>
+
+<div id="result" style="margin-top:20px;"></div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const form = document.getElementById("uploadForm");
+  const resultBox = document.getElementById("result");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const data = new FormData(form);
+    resultBox.innerHTML = "<p>Uploading...</p>";
+
+    try {
+      // Step 1: Upload file
+      const uploadRes = await fetch("/upload", { method: "POST", body: data });
+      const uploadJson = await uploadRes.json();
+
+      if (!uploadJson.ok) {
+        resultBox.innerHTML = `<p style="color:red;">Upload failed: ${uploadJson.error || 'Unknown error'}</p>`;
+        return;
+      }
+
+      let msg = `<p><b>Case:</b> ${uploadJson.case_id}</p>
+                 <p><b>File:</b> ${uploadJson.filename}</p>`;
+
+      // Step 2: If note provided, upload it
+      const note = document.getElementById("note").value.trim();
+      if (note) {
+        const noteData = new FormData();
+        noteData.append("file", new Blob([note], { type: "text/plain" }), "note.txt");
+        noteData.append("case_id", uploadJson.case_id);
+        await fetch("/upload", { method: "POST", body: noteData });
+        msg += `<p>Note added successfully.</p>`;
+      }
+
+      // Step 3: If processor selected, process file
+      const proc = document.getElementById("processor").value;
+      if (proc) {
+        const procRes = await fetch("/process", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({
+            case_id: uploadJson.case_id,
+            filename: uploadJson.filename,
+            processor: proc
+          })
+        });
+        const procJson = await procRes.json();
+        msg += `<p><b>Processing Result:</b> ${JSON.stringify(procJson.result)}</p>`;
+      }
+
+      resultBox.innerHTML = `
+        <div style="background:#eef;padding:10px;border-radius:6px;">
+          <h3>Upload Complete</h3>${msg}
+          <p><a href="/render/${uploadJson.case_id}" target="_blank">View Case</a></p>
+        </div>`;
+    } catch (err) {
+      resultBox.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
+    }
+  });
+});
+</script>
+
+  <p><a href="/">← Back to Dashboard</a></p>
+</body>
+</html>

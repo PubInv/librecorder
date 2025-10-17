@@ -2,19 +2,25 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>OpenLIMS Dashboard</title>
+  <title>Librecorder Dashboard</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 40px; background: #fafafa; }
-    h1 { color: #444; }
+    body { font-family: Arial, sans-serif; margin: 40px; background: #ffcad4; }
+    h1 { color: #450920; }
     table { width: 80%; border-collapse: collapse; margin-top: 20px; }
-    th, td { border: 1px solid #ddd; padding: 8px; }
-    th { background: #f0f0f0; }
-    .btn { padding: 5px 10px; background: #337ab7; color: #fff; border: none; cursor: pointer; border-radius: 3px; }
+    th, td { border: 1px solid #fff; padding: 8px; }
+    td {color: #450920}
+    th { background: #450920; color: #fff}
+    .btn { padding: 5px 10px; background: #450920; color: #fff; border: none; cursor: pointer; border-radius: 3px; }
   </style>
 </head>
 <body>
   <h1>Librecorder Case Dashboard</h1>
-  <p><b>Upload endpoint:</b> <code>/upload</code></p>
+  <p>
+    <b>Upload endpoint:</b> <code>/upload</code>
+    <button class="btn" onclick="window.location.href='/upload_image'">
+      Upload Image
+    </button>
+  </p>
 
   <button class="btn" onclick="loadCases()">Refresh Case List</button>
   <table id="caseTable">
