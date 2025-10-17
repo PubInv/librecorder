@@ -4,7 +4,7 @@ import os
 import tkinter as tk
 from tkinter import filedialog, simpledialog, messagebox
 
-SERVER = "http://127.0.0.1:8000"   # Flask server from app.py
+SERVER = "http://microlab.parccommons.org"   # Flask server from app.py
 
 def pick_and_upload():
     root = tk.Tk()
