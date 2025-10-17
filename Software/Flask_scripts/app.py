@@ -172,6 +172,73 @@ def get_results(case_id):
         for r in results
     ])
 
+@app.route("/rich_results/<case_id>", methods=["GET"])
+def rich_results(case_id):
+    case_dir = os.path.join(UPLOAD_DIR, case_id)
+    if not os.path.exists(case_dir):
+        return f"<h1>Case {case_id} not found</h1>", 404
+
+    # Fetch all results tied to this case
+    results = TestResult.query.filter_by(case_id=case_id).all()
+
+    # Group results by filename
+    results_by_file = {}
+    for r in results:
+        # Try to infer which file the result belongs to
+        # For now, assume each test result includes a partial filename in test_name if available
+        results_by_file.setdefault(r.test_name, []).append(r)
+
+    # Build HTML cards
+    cards = []
+    for fname in sorted(os.listdir(case_dir)):
+        if not fname.lower().endswith((".jpg", ".jpeg", ".png")):
+            continue
+
+        img_url = f"/cases/{case_id}/{fname}"
+        overlay_items = []
+
+        # Match results for this specific file
+        file_results = TestResult.query.filter_by(case_id=case_id).all()
+
+        for r in file_results:
+            overlay_items.append(f"{r.test_name}: {r.result}")
+
+        overlay_html = ""
+        if overlay_items:
+            overlay_html = (
+                "<div style='position:absolute;bottom:5px;left:5px;"
+                "background:rgba(0,0,0,0.6);color:white;font-size:0.9em;"
+                "padding:6px 8px;border-radius:4px;'>"
+                + "<br>".join(overlay_items)
+                + "</div>"
+            )
+
+        cards.append(
+            f"""
+            <div style='position:relative;display:inline-block;margin:10px;'>
+                <img src='{img_url}' style='max-width:350px;border-radius:6px;
+                     box-shadow:0 2px 8px rgba(0,0,0,0.3);'>
+                {overlay_html}
+            </div>
+            """
+        )
+
+    html = f"""
+    <html>
+    <head>
+        <title>Rich Results for {case_id}</title>
+    </head>
+    <body style="font-family:sans-serif;background:#f8f8f8;text-align:center;">
+        <h1>Rich Results for {case_id}</h1>
+        <p><a href="/" style="font-weight:bold;">← Back to Dashboard</a></p>
+        <div style="margin-top:20px;">{''.join(cards)}</div>
+    </body>
+    </html>
+    """
+
+    return html
+
+
 @app.route("/process", methods=["POST"])
 def process_file():
     data = request.form
@@ -194,6 +261,16 @@ def process_file():
             img = Image.open(file_path).convert("L")  # grayscale
             arr = np.array(img)
             mean_val = float(np.mean(arr))
+
+            tr = TestResult(
+                case_id=case_id,
+                test_name="mean_pixel",
+                result=str(mean_val),
+                units="(0-255 grayscale)"
+            )
+            db.session.add(tr)
+            db.session.commit()
+
             return jsonify(result={"mean_pixel": mean_val})
         except Exception as e:
             return jsonify(error=str(e)), 500
