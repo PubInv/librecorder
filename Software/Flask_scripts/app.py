@@ -1,77 +1,84 @@
-# --- Generic processing endpoint ---
+# ~/librecorder/Software/Flask_scripts/app.py
 import os
 import shutil
+import time
+import threading
 from datetime import datetime
-from flask import Flask, request, jsonify, send_from_directory, abort
+from flask import Flask, request, jsonify, send_from_directory, abort, render_template
 from werkzeug.utils import secure_filename
+import importlib.util
+from flask_cors import CORS
+from models import db, Case, TestResult
 
 UPLOAD_DIR = "uploads"
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".txt"}
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 app = Flask(__name__)
+CORS(app)
+
+# Database setup
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///openlims.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db.init_app(app)
+with app.app_context():
+    db.create_all()
+
+queue_lock = threading.Lock()
 
 def allowed(filename):
     return os.path.splitext(filename)[1].lower() in ALLOWED_EXTENSIONS
 
 def make_case_id():
-    """Generate a unique case ID based on timestamp."""
     return datetime.now().strftime("case-%Y%m%d-%H%M%S-%f")
 
 @app.route("/", methods=["GET"])
 def index():
-    return """
-    <h1>Case Management Server</h1>
-    <p>Available endpoints:</p>
-    <ul>
-        <li><b>POST /upload</b> – upload file (with optional case_id)</li>
-        <li><b>GET /cases</b> – list all cases</li>
-        <li><b>GET /cases/&lt;case_id&gt;</b> – list files in case</li>
-        <li><b>GET /cases/&lt;case_id&gt;/&lt;filename&gt;</b> – view file inline</li>
-        <li><b>GET /render/&lt;case_id&gt;</b> – render case in browser</li>
-        <li><b>DELETE /purge/&lt;case_id&gt;</b> – delete entire case</li>
-    </ul>
-    """
+    return render_template("dashboard.html")
 
 @app.route("/upload", methods=["POST"])
 def upload():
-    if "file" not in request.files:
-        return jsonify(error="no file part"), 400
+    with queue_lock:
+        time.sleep(2)
+        if "file" not in request.files:
+            return jsonify(error="no file part"), 400
 
-    f = request.files["file"]
-    if f.filename == "":
-        return jsonify(error="no selected file"), 400
+        f = request.files["file"]
+        if f.filename == "":
+            return jsonify(error="no selected file"), 400
 
-    if not allowed(f.filename):
-        return jsonify(error="only .jpg/.jpeg/.txt allowed"), 400
+        if not allowed(f.filename):
+            return jsonify(error="only .jpg/.jpeg/.txt allowed"), 400
 
-    # Case ID: provided or new
-    case_id = request.form.get("case_id")
-    if not case_id:
-        case_id = make_case_id()
+        case_id = request.form.get("case_id") or make_case_id()
+        case_dir = os.path.join(UPLOAD_DIR, case_id)
+        os.makedirs(case_dir, exist_ok=True)
 
-    case_dir = os.path.join(UPLOAD_DIR, case_id)
-    os.makedirs(case_dir, exist_ok=True)
+        ts = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+        safe = secure_filename(f.filename)
+        name = f"{ts}-{safe}"
+        path = os.path.join(case_dir, name)
+        f.save(path)
 
-    # Save file with timestamp prefix to preserve order
-    ts = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
-    safe = secure_filename(f.filename)
-    name = f"{ts}-{safe}"
-    path = os.path.join(case_dir, name)
-    f.save(path)
+        # Log in database
+        if not Case.query.filter_by(case_id=case_id).first():
+            db.session.add(Case(case_id=case_id, description="Uploaded via API"))
+            db.session.commit()
 
-    return jsonify({
-        "ok": True,
-        "case_id": case_id,
-        "filename": name,
-        "url": f"/cases/{case_id}/{name}"
-    })
+        return jsonify({
+            "ok": True,
+            "case_id": case_id,
+            "filename": name,
+            "url": f"/cases/{case_id}/{name}"
+        })
 
 @app.route("/cases", methods=["GET"])
 def list_cases():
-    cases = [d for d in os.listdir(UPLOAD_DIR)
-             if os.path.isdir(os.path.join(UPLOAD_DIR, d))]
-    return jsonify(sorted(cases))
+    cases = Case.query.all()
+    return jsonify([
+        {"case_id": c.case_id, "created_at": c.created_at.isoformat(), "description": c.description}
+        for c in cases
+    ])
 
 @app.route("/cases/<case_id>", methods=["GET"])
 def list_case_files(case_id):
@@ -82,7 +89,6 @@ def list_case_files(case_id):
 
 @app.route("/cases/<case_id>/<filename>", methods=["GET"])
 def serve_case_file(case_id, filename):
-    """Serve files inline instead of forcing download"""
     case_dir = os.path.join(UPLOAD_DIR, case_id)
     if not os.path.exists(os.path.join(case_dir, filename)):
         abort(404)
@@ -94,20 +100,17 @@ def render_case(case_id):
     if not os.path.exists(case_dir):
         return f"<h1>Case {case_id} not found</h1>", 404
 
-    # Sort files chronologically by filename (timestamp prefix)
     files = sorted(os.listdir(case_dir))
-
     cards = []
+
     for fname in files:
         filepath = os.path.join(case_dir, fname)
         if fname.lower().endswith((".jpg", ".jpeg")):
-            # Show image
             cards.append(
                 f"<div style='margin:10px;'><h3>{fname}</h3>"
                 f"<img src='/cases/{case_id}/{fname}' style='max-width:400px;'></div>"
             )
         elif fname.lower().endswith(".txt"):
-            # Show note inline
             with open(filepath, "r", encoding="utf-8") as f:
                 preview = f.read()
             cards.append(
@@ -115,7 +118,6 @@ def render_case(case_id):
                 f"<pre style='background:#f9f9f9;padding:10px;border:1px solid #ddd;'>{preview}</pre></div>"
             )
         else:
-            # Other file → just a link
             cards.append(
                 f"<div><h3>{fname}</h3><a href='/cases/{case_id}/{fname}'>Download</a></div>"
             )
@@ -124,53 +126,45 @@ def render_case(case_id):
 
 @app.route("/purge/<case_id>", methods=["DELETE"])
 def purge_case(case_id):
-    """Delete an entire case folder and its contents"""
     case_dir = os.path.join(UPLOAD_DIR, case_id)
     if not os.path.exists(case_dir):
         return jsonify(error="case not found"), 404
-
     try:
         shutil.rmtree(case_dir)
+        Case.query.filter_by(case_id=case_id).delete()
+        TestResult.query.filter_by(case_id=case_id).delete()
+        db.session.commit()
         return jsonify({"ok": True, "message": f"Case {case_id} deleted"}), 200
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
-
-
-### code to call processing scripts on uploaded files
-import importlib.util
-@app.route("/process", methods=["POST"])
-def process_file():
-    data = request.form
+@app.route("/record_result", methods=["POST"])
+def record_result():
+    data = request.json
     case_id = data.get("case_id")
-    filename = data.get("filename")
-    processor = data.get("processor")
+    test_name = data.get("test_name")
+    result = data.get("result")
+    units = data.get("units", "")
 
-    if not case_id or not filename or not processor:
-        return jsonify(error="case_id, filename, and processor required"), 400
+    if not all([case_id, test_name, result]):
+        return jsonify(error="Missing required fields"), 400
 
-    file_path = os.path.join(UPLOAD_DIR, case_id, filename)
-    if not os.path.exists(file_path):
-        return jsonify(error="file not found"), 404
+    if not Case.query.filter_by(case_id=case_id).first():
+        return jsonify(error="Unknown case_id"), 404
 
-    proc_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../processing", f"{processor}.py"))
-    if not os.path.exists(proc_path):
-        return jsonify(error=f"Processor script {processor}.py not found"), 404
+    tr = TestResult(case_id=case_id, test_name=test_name, result=result, units=units)
+    db.session.add(tr)
+    db.session.commit()
 
-    try:
-        spec = importlib.util.spec_from_file_location(processor, proc_path)
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        if hasattr(mod, "process"):
-            result = mod.process(file_path)
-            return jsonify({"ok": True, "result": result})
-        else:
-            return jsonify(error=f"Processor {processor} has no 'process' function"), 400
-    except Exception as e:
-        return jsonify(error=f"Error running processor: {e}"), 500
-    
-# ------------------------------
-# MAIN
-# ------------------------------
+    return jsonify(ok=True, message="Result logged successfully")
+
+@app.route("/results/<case_id>", methods=["GET"])
+def get_results(case_id):
+    results = TestResult.query.filter_by(case_id=case_id).all()
+    return jsonify([
+        {"test_name": r.test_name, "result": r.result, "units": r.units, "timestamp": r.timestamp.isoformat()}
+        for r in results
+    ])
+
 if __name__ == "__main__":
-    app.run(port=8000, debug=True)
+    app.run(host="0.0.0.0", port=8000, debug=True)
