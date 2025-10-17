@@ -166,5 +166,35 @@ def get_results(case_id):
         for r in results
     ])
 
+@app.route("/process", methods=["POST"])
+def process_file():
+    data = request.form
+    case_id = data.get("case_id")
+    filename = data.get("filename")
+    processor = data.get("processor", "mean_pixel")
+
+    if not case_id or not filename:
+        return jsonify(error="Missing case_id or filename"), 400
+
+    file_path = os.path.join("uploads", case_id, filename)
+    if not os.path.exists(file_path):
+        return jsonify(error="File not found"), 404
+
+    if processor == "mean_pixel" and filename.lower().endswith((".jpg", ".jpeg")):
+        from PIL import Image
+        import numpy as np
+
+        try:
+            img = Image.open(file_path).convert("L")  # grayscale
+            arr = np.array(img)
+            mean_val = float(np.mean(arr))
+            return jsonify(result={"mean_pixel": mean_val})
+        except Exception as e:
+            return jsonify(error=str(e)), 500
+    else:
+        # default response for other processors or file types
+        return jsonify(result={"status": "ok", "message": "No processing performed"})
+
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)
