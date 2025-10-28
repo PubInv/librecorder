@@ -27,6 +27,12 @@ offer an ever-expanding set of diagnostic functions.
 
 # Architecture
 
+This is our most recent architecture:
+<img width="960" height="720" alt="Architecture #1 (1)" src="https://github.com/user-attachments/assets/69e6bbe8-6755-4211-b50c-f9f0e4918d16" />
+
+
+An older, different view of the same thing:
+
 ![Librecorder](https://github.com/user-attachments/assets/6b981346-d832-4b1f-b75a-c0060d920960)
 
 # References
