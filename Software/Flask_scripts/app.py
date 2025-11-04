@@ -244,39 +244,40 @@ def process_file():
     data = request.form
     case_id = data.get("case_id")
     filename = data.get("filename")
-    processor = data.get("processor", "mean_pixel")
+    processor = data.get("processor")
 
-    if not case_id or not filename:
-        return jsonify(error="Missing case_id or filename"), 400
+    if not case_id or not filename or not processor:
+        return jsonify(error="Missing required fields"), 400
 
     file_path = os.path.join("uploads", case_id, filename)
     if not os.path.exists(file_path):
         return jsonify(error="File not found"), 404
 
-    if processor == "mean_pixel" and filename.lower().endswith((".jpg", ".jpeg")):
-        from PIL import Image
-        import numpy as np
+    try:
+        # Dynamic import from /librecorder/processing
+        proc_path = os.path.join(os.path.dirname(__file__), "..", "processing", f"{processor}.py")
+        spec = importlib.util.spec_from_file_location(processor, proc_path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
 
-        try:
-            img = Image.open(file_path).convert("L")  # grayscale
-            arr = np.array(img)
-            mean_val = float(np.mean(arr))
+        result = mod.run(file_path)
 
-            tr = TestResult(
-                case_id=case_id,
-                test_name="mean_pixel",
-                result=str(mean_val),
-                units="(0-255 grayscale)"
-            )
-            db.session.add(tr)
-            db.session.commit()
+        # Store in DB
+        tr = TestResult(
+            case_id=case_id,
+            test_name=processor,
+            result=str(result),
+            units=""
+        )
+        db.session.add(tr)
+        db.session.commit()
 
-            return jsonify(result={"mean_pixel": mean_val})
-        except Exception as e:
-            return jsonify(error=str(e)), 500
-    else:
-        # default response for other processors or file types
-        return jsonify(result={"status": "ok", "message": "No processing performed"})
+        return jsonify(result=result)
+
+    except FileNotFoundError:
+        return jsonify(error=f"Processor '{processor}' not found"), 404
+    except Exception as e:
+        return jsonify(error=str(e)), 500
 
 
 if __name__ == "__main__":

@@ -35,27 +35,32 @@
   </style>
 </head>
 <body>
-  <h1>Upload Image to LibreRecorder</h1>
-<form id="uploadForm" enctype="multipart/form-data">
-  <label for="case_id">Case ID (leave blank for new):</label><br>
-  <input type="text" name="case_id" id="case_id" placeholder="case-optional"><br><br>
 
-  <label for="file">Select File:</label><br>
+<h1>Upload Image to LibreRecorder</h1>
+<form id="uploadForm" enctype="multipart/form-data">
+  <label>Case ID (leave blank for new):</label><br>
+  <input type="text" id="case_id" name="case_id" placeholder="e.g., test3"><br><br>
+
+  <label>Select File(s):</label><br>
   <input type="file" name="files" id="file" accept=".jpg,.jpeg,.png,.txt" multiple required><br><br>
 
-  <label for="note">Add Note (optional):</label><br>
-  <textarea name="note" id="note" rows="3" cols="40" placeholder="Add an observation or context..."></textarea><br><br>
+  <label>Add Note (optional):</label><br>
+  <textarea id="note" name="note" rows="3" cols="40" placeholder="Enter a note..."></textarea><br><br>
 
-  <label for="processor">Processing Option:</label><br>
+  <label>Processing Option (optional):</label><br>
   <select id="processor" name="processor">
     <option value="">None</option>
-    <option value="mean_pixel">Mean Pixel</option>
+    <option value="mean_pixel">Mean Pixel Value</option>
+    <option value="dark_light">Dark vs Light Classifier</option>
   </select><br><br>
 
   <button type="submit">Upload</button>
 </form>
 
-<div id="result" style="margin-top:20px;"></div>
+<div id="result"></div>
+
+<p><a href="/">← Back to Dashboard</a></p>
+
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
