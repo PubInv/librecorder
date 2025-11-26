@@ -261,8 +261,17 @@ def process_file():
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
 
-        result = mod.run(file_path)
+        # Call processor (prefer run, fallback to process)
+        if hasattr(mod, "run") and callable(mod.run):
+            result = mod.run(file_path)
+        elif hasattr(mod, "process") and callable(mod.process):
+            result = mod.process(file_path)
+        else:
+            return jsonify(error=f"Processor '{processor}' has no 'run' or 'process' callable"), 500
 
+        # Generate formatted report
+        formatted_result = None
+        report_name = None
         try:
             report_path = os.path.join(os.path.dirname(__file__), "..", "reporting", "format_output.py")
             spec2 = importlib.util.spec_from_file_location("format_output", report_path)
@@ -270,21 +279,27 @@ def process_file():
             spec2.loader.exec_module(fmt_mod)
             formatted_result = fmt_mod.format_output(case_id, sample_type or "", processor, result)
         except Exception as e:
-            # don't fail processing if formatting fails; keep result
-            formatted_result = result
-            print(f"Formatting error: {e}\n Using raw result.")
+            print(f"Formatting/writing error: {e}")
 
-        # Store in DB
+        # Store raw JSON result in DB
         tr = TestResult(
             case_id=case_id,
+            sample_type=sample_type,
             test_name=processor,
-            result=formatted_result,
-            units=""
+            result=result,  # Store raw dictionary as JSON
+            units=result.get("units", "") if isinstance(result, dict) else ""
         )
         db.session.add(tr)
         db.session.commit()
 
-        return jsonify(result=result)
+        # Return raw result + formatted report
+        resp = {"result": result}
+        if formatted_result:
+            resp["formatted_result"] = formatted_result
+        if report_name:
+            resp["report_file"] = report_name
+            resp["report_url"] = f"/cases/{case_id}/{report_name}"
+        return jsonify(resp)
 
     except FileNotFoundError:
         return jsonify(error=f"Processor '{processor}' not found"), 404

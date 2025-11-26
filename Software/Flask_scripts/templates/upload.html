@@ -38,7 +38,7 @@
 
 <h1>Upload Image to LibreRecorder</h1>
 <form id="uploadForm" enctype="multipart/form-data">
-  <label>Case ID (leave blank for new):</label><br>
+  <label>Case ID (leave blank for now):</label><br>
   <input type="text" id="case_id" name="case_id" placeholder="e.g., test3"><br><br>
 
   <label>Select File(s):</label><br>
@@ -104,7 +104,10 @@ document.addEventListener("DOMContentLoaded", function() {
               processor: proc
             })
           });
-          await procRes.json();
+          const procData = await procRes.json();
+          if (procData.formatted_result) {
+            uploadJson.formatted_result = procData.formatted_result;
+          }
         }
       }
 
@@ -116,12 +119,22 @@ document.addEventListener("DOMContentLoaded", function() {
         await fetch("/upload", { method: "POST", body: noteData });
       }
 
+      let reportHtml = '';
+      if (uploadJson.formatted_result) {
+        reportHtml = `
+          <div style="background:#f9f9f9;padding:15px;border:1px solid #ddd;margin-top:15px;text-align:left;">
+            <h4 style="margin-top:0;">Processing Report:</h4>
+            <pre style="white-space:pre-wrap;font-size:0.9em;">${uploadJson.formatted_result}</pre>
+          </div>`;
+      }
+      
       resultBox.innerHTML = `
         <div style="background:#eef;padding:10px;border-radius:6px;">
           <h3>Upload Complete</h3>
           <p>Case: ${uploadJson.case_id}</p>
           <p>Uploaded ${files.length} file(s) successfully.</p>
           <p><a href="/render/${uploadJson.case_id}" target="_blank">View Case</a></p>
+          ${reportHtml}
         </div>`;
     } catch (err) {
       resultBox.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
