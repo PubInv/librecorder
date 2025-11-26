@@ -243,6 +243,7 @@ def rich_results(case_id):
 def process_file():
     data = request.form
     case_id = data.get("case_id")
+    sample_type = data.get("sample_type")
     filename = data.get("filename")
     processor = data.get("processor")
 
@@ -262,11 +263,22 @@ def process_file():
 
         result = mod.run(file_path)
 
+        try:
+            report_path = os.path.join(os.path.dirname(__file__), "..", "reporting", "format_output.py")
+            spec2 = importlib.util.spec_from_file_location("format_output", report_path)
+            fmt_mod = importlib.util.module_from_spec(spec2)
+            spec2.loader.exec_module(fmt_mod)
+            formatted_result = fmt_mod.format_output(case_id, sample_type or "", processor, result)
+        except Exception as e:
+            # don't fail processing if formatting fails; keep result
+            formatted_result = result
+            print(f"Formatting error: {e}\n Using raw result.")
+
         # Store in DB
         tr = TestResult(
             case_id=case_id,
             test_name=processor,
-            result=str(result),
+            result=formatted_result,
             units=""
         )
         db.session.add(tr)
