@@ -272,12 +272,13 @@ def process_file():
         # Generate formatted report
         formatted_result = None
         report_name = None
+        report_version = "0.1.0"  # Semantic version for report schema
         try:
             report_path = os.path.join(os.path.dirname(__file__), "..", "reporting", "format_output.py")
             spec2 = importlib.util.spec_from_file_location("format_output", report_path)
             fmt_mod = importlib.util.module_from_spec(spec2)
             spec2.loader.exec_module(fmt_mod)
-            formatted_result = fmt_mod.format_output(case_id, sample_type or "", processor, result)
+            formatted_result = fmt_mod.format_output(case_id, sample_type or "", processor, result, image_id=filename, report_version=report_version)
         except Exception as e:
             print(f"Formatting/writing error: {e}")
 
@@ -286,8 +287,10 @@ def process_file():
             case_id=case_id,
             sample_type=sample_type,
             test_name=processor,
+            image_id=filename,  # Store the image/file identifier
             result=result,  # Store raw dictionary as JSON
-            units=result.get("units", "") if isinstance(result, dict) else ""
+            units=result.get("units", "") if isinstance(result, dict) else "",
+            report_version=report_version
         )
         db.session.add(tr)
         db.session.commit()
