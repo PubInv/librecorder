@@ -1,58 +1,75 @@
-# ~/librecorder/Software/Flask_scripts/app.py
+# ~/librecorder/Software/WebApp/app.py
 import os
 import shutil
 import time
 import threading
 from datetime import datetime
-from flask import Flask, request, jsonify, send_from_directory, abort, render_template, redirect, url_for, flash
+from flask import Flask, request, jsonify, send_from_directory, abort, render_template
 from werkzeug.utils import secure_filename
 import importlib.util
 from flask_cors import CORS
 from models import db, Case, TestResult
 
-
-UPLOAD_DIR = "uploads"
+# ----------------------------
+# Path Configuration
+# ----------------------------
+base_dir = os.path.abspath(os.path.dirname(__file__))
+UPLOAD_DIR = os.path.join(base_dir, "uploads")
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".txt"}
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-app = Flask(__name__)
+# ----------------------------
+# Flask App Initialization
+# ----------------------------
+app = Flask(
+    __name__,
+    template_folder=os.path.join(base_dir, "templates"),
+    static_folder=os.path.join(base_dir, "static")
+)
 CORS(app)
 
-# Database setup
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///openlims.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# ----------------------------
+# Database Setup
+# ----------------------------
+app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.join(base_dir, 'openlims.db')}"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 db.init_app(app)
 with app.app_context():
     db.create_all()
 
 queue_lock = threading.Lock()
 
+# ----------------------------
+# Utility Functions
+# ----------------------------
 def allowed(filename):
     return os.path.splitext(filename)[1].lower() in ALLOWED_EXTENSIONS
 
 def make_case_id():
     return datetime.now().strftime("case-%Y%m%d-%H%M%S-%f")
 
+# ----------------------------
+# Routes
+# ----------------------------
 @app.route("/", methods=["GET"])
 def index():
     return render_template("dashboard.html")
 
-@app.route('/upload_image', methods = ['GET'])
+@app.route("/upload_image", methods=["GET"])
 def upload_image_page():
     """Render a browser-based image upload form."""
-    return render_template('upload.html')
+    return render_template("upload.html")
 
 @app.route("/upload", methods=["POST"])
 def upload():
     with queue_lock:
-        time.sleep(2)
+        time.sleep(1)
         if "file" not in request.files:
             return jsonify(error="no file part"), 400
 
         f = request.files["file"]
         if f.filename == "":
             return jsonify(error="no selected file"), 400
-
         if not allowed(f.filename):
             return jsonify(error="only .jpg/.jpeg/.txt allowed"), 400
 
@@ -77,6 +94,46 @@ def upload():
             "filename": name,
             "url": f"/cases/{case_id}/{name}"
         })
+import json
+
+@app.route("/meta/<case_id>", methods=["GET", "POST"])
+def case_meta(case_id):
+    case_dir = os.path.join(UPLOAD_DIR, case_id)
+    if not os.path.exists(case_dir):
+        return jsonify(error="case not found"), 404
+
+    meta_path = os.path.join(case_dir, "meta.json")
+
+    if request.method == "GET":
+        if os.path.exists(meta_path):
+            with open(meta_path, "r", encoding="utf-8") as f:
+                return jsonify(json.load(f))
+        # default meta if not present
+        return jsonify({
+            "domain": "health",
+            "level": "Not Analyzed",          # Analyzed | Not Analyzed | Not for Analysis
+            "columns": {},                   # analysis-type -> status (e.g., {"Microscopy QC":"Queued"})
+            "tags": [],
+            "notes": ""
+        })
+
+    # POST: save meta
+    try:
+        data = request.json or {}
+        with open(meta_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+
+        # keep DB description in sync if provided
+        desc = data.get("description")
+        if desc is not None:
+            c = Case.query.filter_by(case_id=case_id).first()
+            if c:
+                c.description = desc
+                db.session.commit()
+
+        return jsonify(ok=True)
+    except Exception as e:
+        return jsonify(error=str(e)), 500
 
 @app.route("/cases", methods=["GET"])
 def list_cases():
@@ -108,7 +165,6 @@ def render_case(case_id):
 
     files = sorted(os.listdir(case_dir))
     cards = []
-
     for fname in files:
         filepath = os.path.join(case_dir, fname)
         if fname.lower().endswith((".jpg", ".jpeg")):
@@ -127,7 +183,6 @@ def render_case(case_id):
             cards.append(
                 f"<div><h3>{fname}</h3><a href='/cases/{case_id}/{fname}'>Download</a></div>"
             )
-
     return f"<h1>Case {case_id}</h1>" + "".join(cards)
 
 @app.route("/purge/<case_id>", methods=["DELETE"])
@@ -154,7 +209,6 @@ def record_result():
 
     if not all([case_id, test_name, result]):
         return jsonify(error="Missing required fields"), 400
-
     if not Case.query.filter_by(case_id=case_id).first():
         return jsonify(error="Unknown case_id"), 404
 
@@ -178,31 +232,13 @@ def rich_results(case_id):
     if not os.path.exists(case_dir):
         return f"<h1>Case {case_id} not found</h1>", 404
 
-    # Fetch all results tied to this case
     results = TestResult.query.filter_by(case_id=case_id).all()
-
-    # Group results by filename
-    results_by_file = {}
-    for r in results:
-        # Try to infer which file the result belongs to
-        # For now, assume each test result includes a partial filename in test_name if available
-        results_by_file.setdefault(r.test_name, []).append(r)
-
-    # Build HTML cards
     cards = []
     for fname in sorted(os.listdir(case_dir)):
         if not fname.lower().endswith((".jpg", ".jpeg", ".png")):
             continue
-
         img_url = f"/cases/{case_id}/{fname}"
-        overlay_items = []
-
-        # Match results for this specific file
-        file_results = TestResult.query.filter_by(case_id=case_id).all()
-
-        for r in file_results:
-            overlay_items.append(f"{r.test_name}: {r.result}")
-
+        overlay_items = [f"{r.test_name}: {r.result}" for r in results]
         overlay_html = ""
         if overlay_items:
             overlay_html = (
@@ -212,32 +248,20 @@ def rich_results(case_id):
                 + "<br>".join(overlay_items)
                 + "</div>"
             )
-
         cards.append(
-            f"""
-            <div style='position:relative;display:inline-block;margin:10px;'>
-                <img src='{img_url}' style='max-width:350px;border-radius:6px;
-                     box-shadow:0 2px 8px rgba(0,0,0,0.3);'>
-                {overlay_html}
-            </div>
-            """
+            f"<div style='position:relative;display:inline-block;margin:10px;'>"
+            f"<img src='{img_url}' style='max-width:350px;border-radius:6px;"
+            f"box-shadow:0 2px 8px rgba(0,0,0,0.3);'>{overlay_html}</div>"
         )
-
     html = f"""
-    <html>
-    <head>
-        <title>Rich Results for {case_id}</title>
-    </head>
+    <html><head><title>Rich Results for {case_id}</title></head>
     <body style="font-family:sans-serif;background:#f8f8f8;text-align:center;">
-        <h1>Rich Results for {case_id}</h1>
-        <p><a href="/" style="font-weight:bold;">← Back to Dashboard</a></p>
-        <div style="margin-top:20px;">{''.join(cards)}</div>
-    </body>
-    </html>
+      <h1>Rich Results for {case_id}</h1>
+      <p><a href="/" style="font-weight:bold;">← Back to Dashboard</a></p>
+      <div style="margin-top:20px;">{''.join(cards)}</div>
+    </body></html>
     """
-
     return html
-
 
 @app.route("/process", methods=["POST"])
 def process_file():
@@ -249,36 +273,29 @@ def process_file():
     if not case_id or not filename or not processor:
         return jsonify(error="Missing required fields"), 400
 
-    file_path = os.path.join("uploads", case_id, filename)
+    file_path = os.path.join(UPLOAD_DIR, case_id, filename)
     if not os.path.exists(file_path):
         return jsonify(error="File not found"), 404
 
     try:
-        # Dynamic import from /librecorder/processing
-        proc_path = os.path.join(os.path.dirname(__file__), "..", "processing", f"{processor}.py")
+        proc_path = os.path.join(base_dir, "..", "processing", f"{processor}.py")
         spec = importlib.util.spec_from_file_location(processor, proc_path)
         mod = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(mod)
-
         result = mod.run(file_path)
 
-        # Store in DB
-        tr = TestResult(
-            case_id=case_id,
-            test_name=processor,
-            result=str(result),
-            units=""
-        )
+        tr = TestResult(case_id=case_id, test_name=processor, result=str(result), units="")
         db.session.add(tr)
         db.session.commit()
 
         return jsonify(result=result)
-
     except FileNotFoundError:
         return jsonify(error=f"Processor '{processor}' not found"), 404
     except Exception as e:
         return jsonify(error=str(e)), 500
 
-
+# ----------------------------
+# Entry Point
+# ----------------------------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000, debug=True)

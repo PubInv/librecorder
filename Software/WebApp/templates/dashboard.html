@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>LibreRecorder Pipeline</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- IMPORTANT: this must exist at WebApp/static/css/dashboard.css -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+</head>
+<body>
+
+  <header class="lr-header">
+    <h1>LibreRecorder Pipeline</h1>
+  </header>
+
+  <div class="lr-wrap">
+    <div class="topbar">
+      <div style="display:flex; flex-direction:column; gap:10px; width:100%;">
+        <!-- Row 1: Domain tabs + controls -->
+        <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+          <div class="tabs" id="domainTabs"></div>
+
+          <div class="controls">
+            <input class="search" id="search" placeholder="Search case id, description, tags..." />
+            <button class="btn secondary" id="btnQuickIntake" type="button">Quick intake</button>
+            <button class="btn" type="button" onclick="window.location.href='/upload_image'">Upload</button>
+            <button class="btn secondary" id="btnRefresh" type="button">Refresh</button>
+          </div>
+        </div>
+
+        <!-- Row 2: Level tabs -->
+        <div class="tabs" id="levelTabs"></div>
+      </div>
+    </div>
+
+    <div id="emptyState" class="empty">
+      No datasets match this view. Upload or change filters.
+    </div>
+
+    <div id="board" class="board"></div>
+  </div>
+
+  <!-- Modal (Quick intake / Edit metadata) -->
+  <div class="modal-backdrop" id="modalBackdrop" style="display:none;">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <div class="modal-head">
+        <h3 id="modalTitle">Dataset metadata</h3>
+        <button class="btn secondary" id="btnCloseModal" type="button">Close</button>
+      </div>
+
+      <div class="modal-body">
+        <div>
+          <label for="m_case">Case ID</label>
+          <input id="m_case" placeholder="Existing case id (upload first)" />
+        </div>
+
+        <div>
+          <label for="m_domain">Domain</label>
+          <select id="m_domain">
+            <option value="health">Health</option>
+            <option value="ecology">Ecology</option>
+            <option value="veterinary">Veterinary</option>
+            <option value="more">More</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="m_level">Level</label>
+          <select id="m_level">
+            <option value="Not Analyzed">Not Analyzed</option>
+            <option value="Analyzed">Analyzed</option>
+            <option value="Not for Analysis">Not for Analysis</option>
+          </select>
+        </div>
+
+        <div>
+          <label for="m_desc">Description</label>
+          <input id="m_desc" placeholder="Short description" />
+        </div>
+
+        <div style="grid-column:1 / -1;">
+          <label for="m_tags">Tags (comma-separated)</label>
+          <input id="m_tags" placeholder="microscopy, soil, blood-smear, qc, ..." />
+        </div>
+
+        <div style="grid-column:1 / -1;">
+          <label for="m_notes">Notes</label>
+          <textarea id="m_notes" placeholder="Any notes for this dataset..."></textarea>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn secondary" id="btnCancelModal" type="button">Cancel</button>
+        <button class="btn" id="btnSaveModal" type="button">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- IMPORTANT: this must exist at WebApp/static/js/dashboard.js -->
+  <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+</body>
+</html>
