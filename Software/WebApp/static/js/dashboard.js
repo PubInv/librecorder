@@ -1,342 +1,455 @@
-// LibreRecorder Pipeline dashboard
-// Requires backend route: GET/POST /meta/<case_id>
-// Uses existing routes: /cases, /results/<case_id>
+/* WebApp/static/js/dashboard.js
+   LibreRecorder Pipeline UI (no SQL changes)
+   - Domain tabs: Health / Ecology / Veterinary / More
+   - Level tabs: Not Analyzed / Analyzed / Not for Analysis
+   - Columns: Intake, Microscopy QC, Preprocessing, Labeling, Modeling, Review, Published
+   - Metadata stored in localStorage per case_id (for now)
+*/
 
-const DOMAINS = [
-  { key: "health", label: "Health", theme: "#6a1e55" },
-  { key: "ecology", label: "Ecology", theme: "#1f6a3f" },
-  { key: "veterinary", label: "Veterinary", theme: "#1e4f6a" },
-  { key: "more", label: "More", theme: "#5a5a5a" },
-];
+(() => {
+  const DOMAINS = [
+    { id: "health",     label: "Health",     accent: "#6a1e55" },
+    { id: "ecology",    label: "Ecology",    accent: "#2f7d5a" },
+    { id: "veterinary", label: "Veterinary", accent: "#355a9a" },
+    { id: "more",       label: "More",       accent: "#555555" },
+  ];
 
-const LEVELS = [
-  "Not Analyzed",
-  "Analyzed",
-  "Not for Analysis",
-];
+  const LEVELS = [
+    "Not Analyzed",
+    "Analyzed",
+    "Not for Analysis"
+  ];
 
-const ANALYSIS_COLUMNS = [
-  "Intake",
-  "Microscopy QC",
-  "Preprocessing",
-  "Labeling",
-  "Modeling",
-  "Review",
-];
+  const STATES = [
+    "Intake",
+    "Microscopy QC",
+    "Preprocessing",
+    "Labeling",
+    "Modeling",
+    "Review",
+    "Published"
+  ];
 
-const state = {
-  activeDomain: "health",
-  activeLevel: "Not Analyzed",
-  cases: [],
-  metaByCase: {},
-  resultsCountByCase: {},
-};
+  // --------- DOM ----------
+  const domainTabsEl = document.getElementById("domainTabs");
+  const levelTabsEl  = document.getElementById("levelTabs");
+  const boardEl      = document.getElementById("board");
+  const boardWrapEl  = document.getElementById("boardWrap");
+  const emptyEl      = document.getElementById("emptyState");
 
-function el(id){ return document.getElementById(id); }
+  const searchEl     = document.getElementById("search");
+  const btnRefresh   = document.getElementById("btnRefresh");
+  const btnQuick     = document.getElementById("btnQuickIntake");
 
-function escapeHTML(s){
-  return String(s || "")
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
+  const modalBackdrop = document.getElementById("modalBackdrop");
+  const btnCloseModal = document.getElementById("btnCloseModal");
+  const btnCancelModal = document.getElementById("btnCancelModal");
+  const btnSaveModal  = document.getElementById("btnSaveModal");
 
-async function apiJSON(url, opts){
-  const r = await fetch(url, opts || {});
-  const t = await r.text();
-  try { return JSON.parse(t); } catch { return { error: "Non-JSON response", raw: t }; }
-}
+  const m_case   = document.getElementById("m_case");
+  const m_domain = document.getElementById("m_domain");
+  const m_level  = document.getElementById("m_level");
+  const m_state  = document.getElementById("m_state");
+  const m_desc   = document.getElementById("m_desc");
+  const m_tags   = document.getElementById("m_tags");
+  const m_notes  = document.getElementById("m_notes");
 
-function normalizeMeta(m){
-  const meta = m || {};
-  if (!meta.domain) meta.domain = "health";
-  if (!meta.level) meta.level = "Not Analyzed";
-  if (!meta.columns) meta.columns = {};
-  if (!meta.tags) meta.tags = [];
-  if (!meta.notes) meta.notes = "";
-  if (!meta.description) meta.description = "";
-  return meta;
-}
+  // Resources panel tabs
+  document.querySelectorAll(".resource-tab").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".resource-tab").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
 
-function getPrimaryColumn(meta){
-  const cols = meta.columns || {};
-  for (const k of ANALYSIS_COLUMNS){
-    if (cols[k]) return k;
+      const panel = btn.getAttribute("data-panel");
+      document.querySelectorAll(".resource-view").forEach(v => v.classList.remove("active"));
+      const view = document.getElementById(`panel-${panel}`);
+      if (view) view.classList.add("active");
+    });
+  });
+
+  // --------- State ----------
+  const STORE_KEY = "lr_pipeline_ui_v1";
+
+  const defaultUI = {
+    activeDomain: "health",
+    activeLevel: "Not Analyzed",
+    search: ""
+  };
+
+  let ui = loadUI();
+  let allCases = []; // from /cases
+
+  function loadUI() {
+    try {
+      const raw = localStorage.getItem(STORE_KEY);
+      if (!raw) return { ...defaultUI };
+      const parsed = JSON.parse(raw);
+      return { ...defaultUI, ...parsed };
+    } catch {
+      return { ...defaultUI };
+    }
   }
-  return "Intake";
-}
 
-function setPrimaryColumn(meta, col){
-  if (!meta.columns) meta.columns = {};
-  for (const k of ANALYSIS_COLUMNS) delete meta.columns[k];
-  meta.columns[col] = "Active";
-}
+  function saveUI() {
+    localStorage.setItem(STORE_KEY, JSON.stringify(ui));
+  }
 
-function applyTheme(){
-  const d = DOMAINS.find(x => x.key === state.activeDomain) || DOMAINS[0];
-  const root = document.documentElement;
-  root.style.setProperty("--brand", d.theme);
-  root.style.setProperty("--brand-weak", `${d.theme}1A`); // hex + alpha-ish (works in modern browsers)
-  root.style.setProperty("--brand-border", `${d.theme}59`);
-}
+  function metaKey(caseId) {
+    return `lr_meta_${caseId}`;
+  }
 
-async function loadCases(){
-  const cases = await apiJSON("/cases");
-  state.cases = Array.isArray(cases) ? cases : [];
-}
+  function loadMeta(caseId) {
+    try {
+      const raw = localStorage.getItem(metaKey(caseId));
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
 
-async function loadMetaFor(case_id){
-  const m = await apiJSON(`/meta/${encodeURIComponent(case_id)}`);
-  state.metaByCase[case_id] = normalizeMeta(m);
-}
+  function saveMeta(caseId, meta) {
+    localStorage.setItem(metaKey(caseId), JSON.stringify(meta));
+  }
 
-async function loadResultsCountFor(case_id){
-  const r = await apiJSON(`/results/${encodeURIComponent(case_id)}`);
-  state.resultsCountByCase[case_id] = Array.isArray(r) ? r.length : 0;
-}
+  function ensureDefaultMeta(caseObj) {
+    const existing = loadMeta(caseObj.case_id);
+    if (existing) return existing;
 
-async function refresh(){
-  await loadCases();
-
-  await Promise.all(state.cases.map(async (c) => {
-    await Promise.all([
-      loadMetaFor(c.case_id),
-      loadResultsCountFor(c.case_id),
-    ]);
-  }));
-
-  render();
-}
-
-function renderDomainTabs(){
-  const wrap = el("domainTabs");
-  wrap.innerHTML = "";
-  DOMAINS.forEach(d => {
-    const b = document.createElement("button");
-    b.className = "lr-tab" + (state.activeDomain === d.key ? " active" : "");
-    b.textContent = d.label;
-    b.onclick = () => {
-      state.activeDomain = d.key;
-      applyTheme();
-      render();
+    // Default behavior: put everything into current ui domain/level, Intake
+    const meta = {
+      domain: ui.activeDomain,
+      level: ui.activeLevel,
+      state: "Intake",
+      description: caseObj.description || "",
+      tags: "",
+      notes: ""
     };
-    wrap.appendChild(b);
-  });
-}
+    saveMeta(caseObj.case_id, meta);
+    return meta;
+  }
 
-function renderLevelTabs(){
-  const wrap = el("levelTabs");
-  wrap.innerHTML = "";
-  LEVELS.forEach(lv => {
-    const b = document.createElement("button");
-    b.className = "lr-subtab" + (state.activeLevel === lv ? " active" : "");
-    b.textContent = lv;
-    b.onclick = () => {
-      state.activeLevel = lv;
-      render();
+  // --------- Rendering ----------
+  function setBodyDomain(domainId) {
+    document.body.classList.remove("domain-health", "domain-ecology", "domain-veterinary", "domain-more");
+    document.body.classList.add(`domain-${domainId}`);
+  }
+
+  function renderDomainTabs() {
+    domainTabsEl.innerHTML = "";
+    DOMAINS.forEach(d => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = `tab ${d.id} ${ui.activeDomain === d.id ? "active" : ""}`;
+      b.textContent = d.label;
+      b.addEventListener("click", () => {
+        ui.activeDomain = d.id;
+        saveUI();
+        setBodyDomain(ui.activeDomain);
+        renderAll();
+      });
+      domainTabsEl.appendChild(b);
+    });
+  }
+
+  function renderLevelTabs() {
+    levelTabsEl.innerHTML = "";
+    LEVELS.forEach(level => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = `tab ${ui.activeDomain} ${ui.activeLevel === level ? "active" : ""}`;
+      b.textContent = level;
+      b.addEventListener("click", () => {
+        ui.activeLevel = level;
+        saveUI();
+        renderAll();
+      });
+      levelTabsEl.appendChild(b);
+    });
+  }
+
+  function buildEmptyColumns() {
+    boardEl.innerHTML = "";
+    STATES.forEach(state => {
+      const col = document.createElement("div");
+      col.className = "column";
+
+      const head = document.createElement("div");
+      head.className = "column-header";
+      const h = document.createElement("h3");
+      h.textContent = state;
+
+      const count = document.createElement("span");
+      count.className = "column-count";
+      count.textContent = "0";
+
+      head.appendChild(h);
+      head.appendChild(count);
+
+      const body = document.createElement("div");
+      body.className = "column-body";
+      body.setAttribute("data-state", state);
+
+      col.appendChild(head);
+      col.appendChild(body);
+      boardEl.appendChild(col);
+    });
+  }
+
+  function matchesSearch(caseObj, meta, q) {
+    if (!q) return true;
+    const hay = [
+      caseObj.case_id || "",
+      meta?.description || "",
+      caseObj.description || "",
+      meta?.tags || ""
+    ].join(" ").toLowerCase();
+    return hay.includes(q.toLowerCase());
+  }
+
+  async function getResultCount(caseId) {
+    try {
+      const r = await fetch(`/results/${encodeURIComponent(caseId)}`);
+      if (!r.ok) return 0;
+      const arr = await r.json();
+      return Array.isArray(arr) ? arr.length : 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  async function renderCards() {
+    // clear all column bodies
+    document.querySelectorAll(".column-body").forEach(b => (b.innerHTML = ""));
+
+    const q = (ui.search || "").trim();
+    const visible = [];
+
+    for (const c of allCases) {
+      const meta = ensureDefaultMeta(c);
+
+      if (meta.domain !== ui.activeDomain) continue;
+      if (meta.level !== ui.activeLevel) continue;
+      if (!matchesSearch(c, meta, q)) continue;
+
+      visible.push({ c, meta });
+    }
+
+    // show/hide empty state
+    if (visible.length === 0) {
+      emptyEl.style.display = "block";
+      boardWrapEl.style.display = "none";
+      return;
+    } else {
+      emptyEl.style.display = "none";
+      boardWrapEl.style.display = "block";
+    }
+
+    // build cards and append
+    for (const { c, meta } of visible) {
+      const state = meta.state || "Intake";
+      const colBody = document.querySelector(`.column-body[data-state="${cssEscape(state)}"]`)
+        || document.querySelector(`.column-body[data-state="Intake"]`);
+
+      const card = document.createElement("div");
+      card.className = "card";
+      card.setAttribute("data-case", c.case_id);
+
+      const title = document.createElement("h4");
+      title.textContent = c.case_id;
+
+      const desc = document.createElement("p");
+      desc.textContent = (meta.description || c.description || "").trim() || "—";
+
+      const created = document.createElement("p");
+      created.innerHTML = `<b>Created:</b> ${new Date(c.created_at).toLocaleString()}`;
+
+      const metaRow = document.createElement("div");
+      metaRow.className = "card-meta";
+      metaRow.innerHTML = `<span>${meta.tags ? meta.tags : ""}</span><span class="resCount">Results: …</span>`;
+
+      const actions = document.createElement("div");
+      actions.className = "card-actions";
+      actions.innerHTML = `
+        <a href="/render/${encodeURIComponent(c.case_id)}" target="_blank">View</a>
+        <a href="/results/${encodeURIComponent(c.case_id)}" target="_blank">Raw</a>
+        <a href="/rich_results/${encodeURIComponent(c.case_id)}" target="_blank">Rich</a>
+        <a href="#" class="editLink">Edit</a>
+      `;
+
+      card.appendChild(title);
+      card.appendChild(desc);
+      card.appendChild(created);
+      card.appendChild(metaRow);
+      card.appendChild(actions);
+
+      // Edit metadata
+      actions.querySelector(".editLink").addEventListener("click", (e) => {
+        e.preventDefault();
+        openModal(c.case_id);
+      });
+
+      colBody.appendChild(card);
+
+      // fill result count async
+      getResultCount(c.case_id).then(n => {
+        const el = card.querySelector(".resCount");
+        if (el) el.textContent = `Results: ${n}`;
+      });
+    }
+
+    // update column counts
+    document.querySelectorAll(".column").forEach(col => {
+      const body = col.querySelector(".column-body");
+      const countEl = col.querySelector(".column-count");
+      const n = body ? body.querySelectorAll(".card").length : 0;
+      if (countEl) countEl.textContent = String(n);
+    });
+  }
+
+  function renderAll() {
+    setBodyDomain(ui.activeDomain);
+    renderDomainTabs();
+    renderLevelTabs();
+    buildEmptyColumns();
+    renderCards();
+  }
+
+  // --------- Modal ----------
+  function openModal(caseId) {
+    const c = allCases.find(x => x.case_id === caseId);
+    if (!c) return;
+
+    const meta = ensureDefaultMeta(c);
+
+    m_case.value = c.case_id;
+    m_case.disabled = true;
+
+    m_domain.value = meta.domain || ui.activeDomain;
+    m_level.value  = meta.level  || ui.activeLevel;
+    m_state.value  = meta.state  || "Intake";
+    m_desc.value   = meta.description || c.description || "";
+    m_tags.value   = meta.tags || "";
+    m_notes.value  = meta.notes || "";
+
+    modalBackdrop.style.display = "flex";
+  }
+
+  function openQuickIntake() {
+    m_case.value = "";
+    m_case.disabled = false;
+
+    m_domain.value = ui.activeDomain;
+    m_level.value  = ui.activeLevel;
+    m_state.value  = "Intake";
+    m_desc.value   = "";
+    m_tags.value   = "";
+    m_notes.value  = "";
+
+    modalBackdrop.style.display = "flex";
+    m_case.focus();
+  }
+
+  function closeModal() {
+    modalBackdrop.style.display = "none";
+  }
+
+  btnCloseModal.addEventListener("click", closeModal);
+  btnCancelModal.addEventListener("click", closeModal);
+  modalBackdrop.addEventListener("click", (e) => {
+    if (e.target === modalBackdrop) closeModal();
+  });
+
+  btnSaveModal.addEventListener("click", () => {
+    const caseId = (m_case.value || "").trim();
+    if (!caseId) {
+      alert("Case ID is required. Upload a dataset first, or type an existing case id.");
+      return;
+    }
+
+    // If case doesn't exist in DB list, we still allow local metadata,
+    // but it won't show until /cases returns it.
+    const meta = {
+      domain: m_domain.value,
+      level: m_level.value,
+      state: m_state.value,
+      description: (m_desc.value || "").trim(),
+      tags: (m_tags.value || "").trim(),
+      notes: (m_notes.value || "").trim()
     };
-    wrap.appendChild(b);
-  });
-}
 
-function caseMatchesSearch(c, meta, q){
-  if (!q) return true;
-  const s = q.toLowerCase();
-  const tags = (meta.tags || []).join(",").toLowerCase();
-  const desc = (meta.description || c.description || "").toLowerCase();
-  return (c.case_id || "").toLowerCase().includes(s) || desc.includes(s) || tags.includes(s);
-}
+    saveMeta(caseId, meta);
 
-function buildCard(c){
-  const meta = state.metaByCase[c.case_id] || normalizeMeta({});
-  const resultsN = state.resultsCountByCase[c.case_id] || 0;
-
-  const created = c.created_at ? new Date(c.created_at).toLocaleString() : "";
-  const desc = meta.description || c.description || "No description";
-  const tags = Array.isArray(meta.tags) ? meta.tags : [];
-
-  const card = document.createElement("div");
-  card.className = "lr-card";
-  card.draggable = true;
-  card.dataset.caseId = c.case_id;
-
-  card.innerHTML = `
-    <h4>${escapeHTML(c.case_id)}</h4>
-    <p class="lr-desc">${escapeHTML(desc)}</p>
-
-    <div class="lr-mini">
-      <span>${escapeHTML(created)}</span>
-      <span>Results: ${resultsN}</span>
-    </div>
-
-    <div class="lr-links">
-      <a href="/render/${encodeURIComponent(c.case_id)}" target="_blank">View</a>
-      <a href="/results/${encodeURIComponent(c.case_id)}" target="_blank">Raw</a>
-      <a href="/rich_results/${encodeURIComponent(c.case_id)}" target="_blank">Rich</a>
-    </div>
-
-    <div class="lr-pillrow">
-      ${tags.slice(0,6).map(t => `<span class="lr-pill">${escapeHTML(t)}</span>`).join("")}
-    </div>
-  `;
-
-  card.addEventListener("dragstart", (e) => {
-    e.dataTransfer.setData("text/plain", c.case_id);
+    // If user changed domain/level, keep them in sync with current view
+    // only if they edited the active case in the current domain context.
+    // (We do NOT auto-jump views; user can click tabs.)
+    closeModal();
+    renderAll();
   });
 
-  card.addEventListener("dblclick", () => {
-    openModalWithCase(c.case_id);
-  });
+  btnQuick.addEventListener("click", openQuickIntake);
 
-  return card;
-}
-
-function buildColumn(colName, cards){
-  const col = document.createElement("div");
-  col.className = "lr-col";
-  col.dataset.col = colName;
-
-  const head = document.createElement("div");
-  head.className = "lr-col-head";
-  head.innerHTML = `
-    <div class="lr-col-title">${escapeHTML(colName)}</div>
-    <div class="lr-col-count">${cards.length}</div>
-  `;
-
-  const dropzone = document.createElement("div");
-  dropzone.className = "lr-dropzone";
-
-  dropzone.addEventListener("dragover", (e) => e.preventDefault());
-  dropzone.addEventListener("drop", async (e) => {
-    e.preventDefault();
-    const case_id = e.dataTransfer.getData("text/plain");
-    if (!case_id) return;
-
-    const meta = normalizeMeta(state.metaByCase[case_id] || {});
-    meta.domain = state.activeDomain;
-    meta.level = state.activeLevel;
-    setPrimaryColumn(meta, colName);
-
-    await saveMeta(case_id, meta);
-    state.metaByCase[case_id] = meta;
-    render();
-  });
-
-  cards.forEach(cd => dropzone.appendChild(cd));
-
-  col.appendChild(head);
-  col.appendChild(dropzone);
-  return col;
-}
-
-function renderBoard(){
-  const board = el("board");
-  const empty = el("emptyState");
-  board.innerHTML = "";
-
-  const q = (el("search").value || "").trim();
-
-  const filtered = state.cases.filter(c => {
-    const meta = state.metaByCase[c.case_id] || normalizeMeta({});
-    const domainOk = (meta.domain || "health") === state.activeDomain;
-    const levelOk = (meta.level || "Not Analyzed") === state.activeLevel;
-    const searchOk = caseMatchesSearch(c, meta, q);
-    return domainOk && levelOk && searchOk;
-  });
-
-  empty.style.display = filtered.length ? "none" : "block";
-
-  ANALYSIS_COLUMNS.forEach(colName => {
-    const cards = filtered
-      .filter(c => {
-        const meta = state.metaByCase[c.case_id] || normalizeMeta({});
-        return getPrimaryColumn(meta) === colName;
-      })
-      .map(c => buildCard(c));
-
-    board.appendChild(buildColumn(colName, cards));
-  });
-}
-
-function render(){
-  applyTheme();
-  renderDomainTabs();
-  renderLevelTabs();
-  renderBoard();
-}
-
-async function saveMeta(case_id, meta){
-  if (!meta.description){
-    const c = state.cases.find(x => x.case_id === case_id);
-    if (c && c.description) meta.description = c.description;
-  }
-  const r = await apiJSON(`/meta/${encodeURIComponent(case_id)}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(meta)
-  });
-  if (r && r.error) alert("Meta save error: " + r.error);
-}
-
-/* Modal wiring */
-function showModal(show){
-  el("modalBackdrop").style.display = show ? "flex" : "none";
-}
-
-function openModalWithCase(case_id){
-  const meta = normalizeMeta(state.metaByCase[case_id] || {});
-  const c = state.cases.find(x => x.case_id === case_id);
-
-  el("m_case").value = case_id || "";
-  el("m_domain").value = meta.domain || "health";
-  el("m_level").value = meta.level || "Not Analyzed";
-  el("m_desc").value = meta.description || (c ? (c.description || "") : "");
-  el("m_tags").value = (meta.tags || []).join(", ");
-  el("m_notes").value = meta.notes || "";
-
-  showModal(true);
-}
-
-async function saveModal(){
-  const case_id = (el("m_case").value || "").trim();
-  if (!case_id){
-    alert("Enter an existing Case ID. Upload first.");
-    return;
+  // --------- Data ----------
+  async function fetchCases() {
+    const r = await fetch("/cases");
+    if (!r.ok) throw new Error("Failed to fetch /cases");
+    const arr = await r.json();
+    if (!Array.isArray(arr)) return [];
+    return arr;
   }
 
-  const meta = normalizeMeta(state.metaByCase[case_id] || {});
-  meta.domain = el("m_domain").value;
-  meta.level = el("m_level").value;
-  meta.description = (el("m_desc").value || "").trim();
-  meta.tags = (el("m_tags").value || "").split(",").map(s => s.trim()).filter(Boolean);
-  meta.notes = (el("m_notes").value || "").trim();
-
-  await saveMeta(case_id, meta);
-  state.metaByCase[case_id] = meta;
-
-  showModal(false);
-  render();
-}
-
-function bindUI(){
-  el("btnRefresh").addEventListener("click", refresh);
-  el("btnQuickIntake").addEventListener("click", () => showModal(true));
-  el("btnCloseModal").addEventListener("click", () => showModal(false));
-  el("btnCancelModal").addEventListener("click", () => showModal(false));
-  el("btnSaveModal").addEventListener("click", saveModal);
-
-  el("modalBackdrop").addEventListener("click", (e) => {
-    if (e.target && e.target.id === "modalBackdrop") showModal(false);
+  // --------- Events ----------
+  btnRefresh.addEventListener("click", async () => {
+    await init();
   });
 
-  el("search").addEventListener("input", () => render());
-}
+  searchEl.value = ui.search || "";
+  searchEl.addEventListener("input", () => {
+    ui.search = searchEl.value;
+    saveUI();
+    renderAll();
+  });
 
-/* Boot */
+  // --------- Helpers ----------
+  function cssEscape(s) {
+    // minimal escape for attribute selector use
+    return String(s).replace(/"/g, '\\"');
+  }
+
+  // --------- Init ----------
+  async function init() {
+    try {
+      allCases = await fetchCases();
+      renderAll();
+    } catch (e) {
+      console.error(e);
+      emptyEl.style.display = "block";
+      emptyEl.textContent = "Dashboard failed to load cases. Check server logs.";
+      boardWrapEl.style.display = "none";
+    }
+  }
+
+  init();
+})();
 document.addEventListener("DOMContentLoaded", () => {
-  bindUI();
-  applyTheme();
-  refresh();
+  const hint = document.getElementById("scrollHint");
+  const resources = document.querySelector(".resource-panel");
+
+  if (!hint || !resources) return;
+
+  const observer = new IntersectionObserver(
+    ([entry]) => {
+      if (entry.isIntersecting) {
+        hint.classList.remove("visible");
+      } else {
+        hint.classList.add("visible");
+      }
+    },
+    {
+      root: null,
+      threshold: 0.05  // triggers when even a sliver is visible
+    }
+  );
+
+  observer.observe(resources);
 });

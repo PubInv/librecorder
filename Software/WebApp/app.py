@@ -161,29 +161,19 @@ def serve_case_file(case_id, filename):
 def render_case(case_id):
     case_dir = os.path.join(UPLOAD_DIR, case_id)
     if not os.path.exists(case_dir):
-        return f"<h1>Case {case_id} not found</h1>", 404
+        return render_template("render_case.html", case_id=case_id, files=[], texts={}), 404
 
     files = sorted(os.listdir(case_dir))
-    cards = []
+    texts = {}
     for fname in files:
-        filepath = os.path.join(case_dir, fname)
-        if fname.lower().endswith((".jpg", ".jpeg")):
-            cards.append(
-                f"<div style='margin:10px;'><h3>{fname}</h3>"
-                f"<img src='/cases/{case_id}/{fname}' style='max-width:400px;'></div>"
-            )
-        elif fname.lower().endswith(".txt"):
-            with open(filepath, "r", encoding="utf-8") as f:
-                preview = f.read()
-            cards.append(
-                f"<div style='margin:10px;'><h3>{fname}</h3>"
-                f"<pre style='background:#f9f9f9;padding:10px;border:1px solid #ddd;'>{preview}</pre></div>"
-            )
-        else:
-            cards.append(
-                f"<div><h3>{fname}</h3><a href='/cases/{case_id}/{fname}'>Download</a></div>"
-            )
-    return f"<h1>Case {case_id}</h1>" + "".join(cards)
+        if fname.lower().endswith(".txt"):
+            try:
+                with open(os.path.join(case_dir, fname), "r", encoding="utf-8") as f:
+                    texts[fname] = f.read()
+            except Exception:
+                texts[fname] = "(unable to read file)"
+
+    return render_template("render_case.html", case_id=case_id, files=files, texts=texts)
 
 @app.route("/purge/<case_id>", methods=["DELETE"])
 def purge_case(case_id):

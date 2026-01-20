@@ -1,0 +1,90 @@
+<!-- WebApp/templates/render_case.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Case {{ case_id }} | LibreRecorder</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/render_case.css') }}">
+</head>
+<body>
+
+<header class="case-header">
+  <div class="case-header-inner">
+    <div>
+      <div class="kicker">LibreRecorder Case</div>
+      <h1>{{ case_id }}</h1>
+    </div>
+    <div class="case-header-actions">
+      <a class="btn secondary" href="/">Back to Pipeline</a>
+      <a class="btn" href="/results/{{ case_id }}" target="_blank">Raw Results</a>
+      <a class="btn secondary" href="/rich_results/{{ case_id }}" target="_blank">Rich Results</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  {% set images = [] %}
+  {% for f in files %}
+    {% if f.lower().endswith('.jpg') or f.lower().endswith('.jpeg') or f.lower().endswith('.png') %}
+      {% set _ = images.append(f) %}
+    {% endif %}
+  {% endfor %}
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Images</h2>
+      <div class="muted">{{ images|length }} file(s)</div>
+    </div>
+
+    {% if images|length == 0 %}
+      <div class="empty">No images found in this case.</div>
+    {% else %}
+      <div class="grid">
+        {% for f in images %}
+        <figure class="card">
+          <a href="/cases/{{ case_id }}/{{ f }}" target="_blank" class="imglink">
+            <img src="/cases/{{ case_id }}/{{ f }}" alt="{{ f }}">
+          </a>
+          <figcaption>
+            <div class="fname">{{ f }}</div>
+            <div class="links">
+              <a href="/cases/{{ case_id }}/{{ f }}" target="_blank">Open</a>
+              <a href="/process" onclick="return false;" class="mutedlink" title="Processing from UI can be added later">Process</a>
+            </div>
+          </figcaption>
+        </figure>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2>Text files</h2>
+      <div class="muted">{{ texts|length }} file(s)</div>
+    </div>
+
+    {% if texts|length == 0 %}
+      <div class="empty">No .txt notes found in this case.</div>
+    {% else %}
+      <div class="texts">
+        {% for name, content in texts.items() %}
+          <div class="textcard">
+            <div class="texthead">
+              <div class="fname">{{ name }}</div>
+              <a href="/cases/{{ case_id }}/{{ name }}" target="_blank">Open</a>
+            </div>
+            <pre>{{ content }}</pre>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </section>
+
+</main>
+
+</body>
+</html>

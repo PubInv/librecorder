@@ -1,3 +1,4 @@
+<!-- WebApp/templates/dashboard.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,7 +8,6 @@
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 
-  <!-- IMPORTANT: this must exist at WebApp/static/css/dashboard.css -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
 </head>
 <body>
@@ -17,8 +17,10 @@
   </header>
 
   <div class="lr-wrap">
+
     <div class="topbar">
       <div style="display:flex; flex-direction:column; gap:10px; width:100%;">
+
         <!-- Row 1: Domain tabs + controls -->
         <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap;">
           <div class="tabs" id="domainTabs"></div>
@@ -33,6 +35,7 @@
 
         <!-- Row 2: Level tabs -->
         <div class="tabs" id="levelTabs"></div>
+
       </div>
     </div>
 
@@ -40,7 +43,60 @@
       No datasets match this view. Upload or change filters.
     </div>
 
-    <div id="board" class="board"></div>
+    <!-- Pipeline board (scrolls) -->
+    <div id="boardWrap" class="board-wrap">
+      <div id="board" class="board"></div>
+    </div>
+
+    <!-- Resources panel (fixed height) -->
+    <section class="resource-panel">
+      <div class="resource-nav">
+        <div class="resource-title">Resources</div>
+        <button class="resource-tab active" data-panel="docs" type="button">Documentation</button>
+        <button class="resource-tab" data-panel="students" type="button">For Students</button>
+        <button class="resource-tab" data-panel="researchers" type="button">For Researchers</button>
+      </div>
+
+      <div class="resource-content">
+        <div class="resource-view active" id="panel-docs">
+          <h3>Documentation</h3>
+          <p>
+            LibreRecorder captures, organizes, and analyzes field and laboratory datasets
+            with traceable metadata and reproducible workflows.
+          </p>
+          <ul>
+            <li>Dataset lifecycle overview</li>
+            <li>Processing pipelines</li>
+            <li>Metadata conventions</li>
+          </ul>
+        </div>
+
+        <div class="resource-view" id="panel-students">
+          <h3>For Students</h3>
+          <p>
+            Learn microscopy, annotation, and scientific data handling through real datasets.
+          </p>
+          <ul>
+            <li>Guided intake workflows</li>
+            <li>Hands-on labeling tasks</li>
+            <li>Skill-aligned datasets</li>
+          </ul>
+        </div>
+
+        <div class="resource-view" id="panel-researchers">
+          <h3>For Researchers</h3>
+          <p>
+            Structured pipelines for reproducible analysis and collaborative review.
+          </p>
+          <ul>
+            <li>Cross-domain datasets</li>
+            <li>Analysis provenance</li>
+            <li>Export & citation support</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
   </div>
 
   <!-- Modal (Quick intake / Edit metadata) -->
@@ -77,6 +133,19 @@
         </div>
 
         <div>
+          <label for="m_state">State</label>
+          <select id="m_state">
+            <option value="Intake">Intake</option>
+            <option value="Microscopy QC">Microscopy QC</option>
+            <option value="Preprocessing">Preprocessing</option>
+            <option value="Labeling">Labeling</option>
+            <option value="Modeling">Modeling</option>
+            <option value="Review">Review</option>
+            <option value="Published">Published</option>
+          </select>
+        </div>
+
+        <div style="grid-column:1 / -1;">
           <label for="m_desc">Description</label>
           <input id="m_desc" placeholder="Short description" />
         </div>
@@ -99,7 +168,9 @@
     </div>
   </div>
 
-  <!-- IMPORTANT: this must exist at WebApp/static/js/dashboard.js -->
   <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+<div id="scrollHint" class="scroll-hint">
+  ↓ Scroll for more resources
+</div>
 </body>
 </html>
