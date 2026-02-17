@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Librecorder Case Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: #faf7f7;
+      color: #2a1a1f;
+      margin: 0;
+      padding: 0;
+    }
+
+    header {
+      background-color: #6a1e55;
+      color: #fff;
+      padding: 1.8rem 2rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 1.8rem;
+      font-weight: 700;
+    }
+
+    main {
+      padding: 2rem;
+      max-width: 1300px;
+      margin: auto;
+    }
+
+    .toolbar {
+      display: flex;
+      justify-content: flex-end;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 2rem;
+    }
+
+    .btn {
+      background-color: #6a1e55;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      padding: 10px 16px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      font-weight: 600;
+      transition: background 0.2s ease;
+    }
+    .btn:hover {
+      background-color: #541746;
+    }
+
+    .case-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .case-card {
+      background-color: white;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+      padding: 1.5rem;
+      border-top: 4px solid #6a1e55;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: transform 0.15s ease;
+    }
+
+    .case-card:hover {
+      transform: translateY(-4px);
+    }
+
+    .case-card h3 {
+      margin: 0;
+      font-size: 1.1rem;
+      color: #6a1e55;
+    }
+
+    .case-card p {
+      margin: 0.3rem 0;
+      font-size: 0.9rem;
+      color: #555;
+    }
+
+    .actions {
+      margin-top: 1rem;
+    }
+
+    .actions a {
+      color: #5b34ad;
+      font-weight: 600;
+      text-decoration: none;
+      margin-right: 10px;
+      font-size: 0.9rem;
+    }
+
+    .actions a:hover {
+      text-decoration: underline;
+    }
+
+    .no-cases {
+      text-align: center;
+      color: #777;
+      font-style: italic;
+      padding: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Librecorder Case Dashboard</h1>
+  </header>
+
+  <main>
+    <div class="toolbar">
+      <button class="btn" onclick="window.location.href='/upload_image'">Upload Image</button>
+      <button class="btn" onclick="loadCases()">Refresh Case List</button>
+    </div>
+
+    <div id="caseGrid" class="case-grid"></div>
+    <div id="noCases" class="no-cases" style="display:none;">
+      No cases found. Upload or refresh to see cases.
+    </div>
+  </main>
+
+  <script>
+    async function loadCases() {
+      const res = await fetch('/cases');
+      const cases = await res.json();
+      const grid = document.getElementById('caseGrid');
+      const noCases = document.getElementById('noCases');
+      grid.innerHTML = '';
+
+      if (!cases.length) {
+        noCases.style.display = 'block';
+        return;
+      } else {
+        noCases.style.display = 'none';
+      }
+
+      cases.forEach(c => {
+        const card = document.createElement('div');
+        card.className = 'case-card';
+        card.innerHTML = `
+          <div>
+            <h3>${c.case_id}</h3>
+            <p><b>Created:</b> ${new Date(c.created_at).toLocaleString()}</p>
+            <p><b>Description:</b> ${c.description || 'No description'}</p>
+          </div>
+          <div class="actions">
+            <a href="/render/${c.case_id}" target="_blank">View</a>
+            <a href="/results/${c.case_id}" target="_blank">Raw Results</a>
+            <a href="/rich_results/${c.case_id}" target="_blank">Rich Results</a>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+    loadCases();
+  </script>
+</body>
+</html>

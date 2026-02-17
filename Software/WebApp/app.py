@@ -9,6 +9,10 @@ from werkzeug.utils import secure_filename
 import importlib.util
 from flask_cors import CORS
 from models import db, Case, TestResult
+from PIL import Image
+import numpy as np
+import glob
+
 
 # ----------------------------
 # Path Configuration
@@ -189,6 +193,189 @@ def purge_case(case_id):
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
 
+@app.route("/import_folder", methods=["POST"])
+def import_folder():
+    """
+    POST JSON:
+      { "src": "/home/ubuntu/librecorder/Software/malaria_classifier/Data/Uninfected",
+        "case_id": "optional_case_id",
+        "description": "optional"
+      }
+    Copies images into WebApp/uploads/<case_id>/ and registers Case in DB.
+    """
+    data = request.json or {}
+    src = data.get("src")
+    if not src or not os.path.isdir(src):
+        return jsonify(error="src folder not found"), 400
+
+    case_id = (data.get("case_id") or make_case_id()).strip()
+    desc = (data.get("description") or f"Imported from {src}").strip()
+
+    case_dir = os.path.join(UPLOAD_DIR, case_id)
+    os.makedirs(case_dir, exist_ok=True)
+
+    copied = 0
+    for fname in sorted(os.listdir(src)):
+        if not fname.lower().endswith((".jpg",".jpeg",".png",".tif",".tiff")):
+            continue
+        src_path = os.path.join(src, fname)
+        if not os.path.isfile(src_path):
+            continue
+
+        ts = datetime.now().strftime("%Y%m%d-%H%M%S-%f")
+        safe = secure_filename(fname)
+        dst_name = f"{ts}-{safe}"
+        dst_path = os.path.join(case_dir, dst_name)
+        shutil.copy2(src_path, dst_path)
+        copied += 1
+
+    if copied == 0:
+        return jsonify(error="No image files copied from src"), 400
+
+    if not Case.query.filter_by(case_id=case_id).first():
+        db.session.add(Case(case_id=case_id, description=desc))
+        db.session.commit()
+
+    return jsonify(ok=True, case_id=case_id, copied=copied, description=desc)
+
+@app.route("/models", methods=["GET"])
+def list_models():
+    """
+    Auto-discover processing models in ../processing/*.py
+    A model file should define:
+      MODEL_ID, MODEL_NAME, run(image_path)
+    """
+    proc_dir = os.path.join(base_dir, "..", "processing")
+    files = sorted(glob.glob(os.path.join(proc_dir, "*.py")))
+
+    out = []
+    for path in files:
+        name = os.path.splitext(os.path.basename(path))[0]
+        if name.startswith("_"):
+            continue
+
+        try:
+            spec = importlib.util.spec_from_file_location(name, path)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+
+            model_id = getattr(mod, "MODEL_ID", name)
+            model_name = getattr(mod, "MODEL_NAME", name)
+
+            if not hasattr(mod, "run"):
+                continue
+
+            out.append({
+                "id": str(model_id),
+                "name": str(model_name),
+                "file": os.path.basename(path)
+            })
+        except Exception:
+            # ignore broken modules
+            continue
+
+    return jsonify(out)
+
+@app.route("/run_model", methods=["POST"])
+def run_model():
+    data = request.json or {}
+    case_id = (data.get("case_id") or "").strip()
+    model_id = (data.get("model_id") or "").strip()
+
+    if not case_id or not model_id:
+        return jsonify(error="case_id and model_id are required"), 400
+
+    c = Case.query.filter_by(case_id=case_id).first()
+    if not c:
+        return jsonify(error="Unknown case_id"), 404
+
+    case_dir = os.path.join(UPLOAD_DIR, case_id)
+    if not os.path.isdir(case_dir):
+        return jsonify(error="case directory not found"), 404
+
+    proc_dir = os.path.join(base_dir, "..", "processing")
+
+    # find model module by scanning processing/*.py and matching MODEL_ID
+    target_path = None
+    target_name = None
+
+    for fname in sorted(os.listdir(proc_dir)):
+        if not fname.endswith(".py"):
+            continue
+        if fname.startswith("_"):
+            continue
+
+        path = os.path.join(proc_dir, fname)
+        name = os.path.splitext(fname)[0]
+
+        try:
+            spec = importlib.util.spec_from_file_location(name, path)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+
+            mid = str(getattr(mod, "MODEL_ID", name))
+            if mid != model_id:
+                continue
+
+            if not hasattr(mod, "run"):
+                return jsonify(error=f"Model '{model_id}' missing run(image_path)"), 500
+
+            target_path = path
+            target_name = name
+            target_mod = mod
+            break
+        except Exception:
+            continue
+
+    if not target_path:
+        return jsonify(error=f"Unknown model_id: {model_id}"), 400
+
+    img_files = [
+        f for f in sorted(os.listdir(case_dir))
+        if f.lower().endswith((".jpg", ".jpeg", ".png", ".tif", ".tiff"))
+    ]
+    if not img_files:
+        return jsonify(error="No images found in dataset"), 400
+
+    # Run model per image
+    per_image = []
+    for fname in img_files:
+        p = os.path.join(case_dir, fname)
+        try:
+            r = target_mod.run(p)
+            per_image.append({"file": fname, "result": r})
+        except Exception as e:
+            per_image.append({"file": fname, "error": str(e)})
+
+    # Simple aggregation:
+    # - if mean_pixel present -> average
+    # - if classification present -> counts
+    agg = {}
+    vals = [x["result"]["mean_pixel"] for x in per_image if "result" in x and isinstance(x["result"], dict) and "mean_pixel" in x["result"]]
+    if vals:
+        avg = sum(float(v) for v in vals) / len(vals)
+        agg["mean_pixel_avg"] = round(avg, 4)
+
+    classes = [x["result"]["classification"] for x in per_image if "result" in x and isinstance(x["result"], dict) and "classification" in x["result"]]
+    if classes:
+        counts = {}
+        for k in classes:
+            counts[k] = counts.get(k, 0) + 1
+        agg["class_counts"] = counts
+
+    # Log one summary row to TestResult so it appears in /results/<case_id>
+    tr = TestResult(
+        case_id=case_id,
+        test_name=f"model:{model_id}",
+        result=str(agg if agg else {"ran": len(per_image)}),
+        units=""
+    )
+    db.session.add(tr)
+    db.session.commit()
+
+    return jsonify(ok=True, case_id=case_id, model_id=model_id, aggregate=agg, per_image=per_image)
+
+
 @app.route("/record_result", methods=["POST"])
 def record_result():
     data = request.json
@@ -288,4 +475,4 @@ def process_file():
 # Entry Point
 # ----------------------------
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000, debug=True)
+    app.run(host="0.0.0.0", port=8000, debug=False, use_reloader=False)

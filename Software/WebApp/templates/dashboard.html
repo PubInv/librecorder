@@ -4,25 +4,25 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-  <title>LibreRecorder Pipeline</title>
+  <title>LibreRecorder</title>
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-
   <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
 </head>
-<body>
+<body data-domain="health">
 
   <header class="lr-header">
-    <h1>LibreRecorder Pipeline</h1>
+    <h1>LibreRecorder</h1>
+    <h2>Open Access Microscopy Data and Models</h2>
   </header>
 
   <div class="lr-wrap">
 
     <div class="topbar">
-      <div style="display:flex; flex-direction:column; gap:10px; width:100%;">
+      <div class="topbar-inner">
 
         <!-- Row 1: Domain tabs + controls -->
-        <div style="display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+        <div class="topbar-row">
           <div class="tabs" id="domainTabs"></div>
 
           <div class="controls">
@@ -43,12 +43,45 @@
       No datasets match this view. Upload or change filters.
     </div>
 
-    <!-- Pipeline board (scrolls) -->
-    <div id="boardWrap" class="board-wrap">
-      <div id="board" class="board"></div>
+<!-- DATA + MODELS ROW -->
+<section id="dmRow" class="dm-row">
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title">Datasets</div>
+      <div class="panel-meta" id="datasetsCount">0</div>
+    </div>
+    <div class="panel-body" id="datasetsList"></div>
+  </div>
+
+  <div class="panel">
+    <div class="panel-head">
+      <div class="panel-title">Models</div>
+      <div class="panel-meta" id="modelsCount">0</div>
+    </div>
+    <div class="panel-body" id="modelsList"></div>
+  </div>
+
+  <!-- Run bar -->
+  <div class="runbar" id="runbar">
+    <div class="runbar-left">
+      <div class="runchip">
+        <span class="k">Dataset:</span>
+        <span id="selectedDatasetLabel">None</span>
+      </div>
+      <div class="runchip">
+        <span class="k">Model:</span>
+        <span id="selectedModelLabel">None</span>
+      </div>
     </div>
 
-    <!-- Resources panel (fixed height) -->
+    <div class="runbar-right">
+      <span class="run-status" id="runStatus"></span>
+      <button class="btn" id="btnRunModel" type="button" disabled>Run</button>
+    </div>
+  </div>
+</section>
+
+    <!-- Resources panel -->
     <section class="resource-panel">
       <div class="resource-nav">
         <div class="resource-title">Resources</div>
@@ -99,7 +132,7 @@
 
   </div>
 
-  <!-- Modal (Quick intake / Edit metadata) -->
+  <!-- Modal -->
   <div class="modal-backdrop" id="modalBackdrop" style="display:none;">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
       <div class="modal-head">
@@ -127,21 +160,7 @@
           <label for="m_level">Level</label>
           <select id="m_level">
             <option value="Not Analyzed">Not Analyzed</option>
-            <option value="Analyzed">Analyzed</option>
             <option value="Not for Analysis">Not for Analysis</option>
-          </select>
-        </div>
-
-        <div>
-          <label for="m_state">State</label>
-          <select id="m_state">
-            <option value="Intake">Intake</option>
-            <option value="Microscopy QC">Microscopy QC</option>
-            <option value="Preprocessing">Preprocessing</option>
-            <option value="Labeling">Labeling</option>
-            <option value="Modeling">Modeling</option>
-            <option value="Review">Review</option>
-            <option value="Published">Published</option>
           </select>
         </div>
 
@@ -169,8 +188,10 @@
   </div>
 
   <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
-<div id="scrollHint" class="scroll-hint">
-  ↓ Scroll for more resources
-</div>
+
+  <div id="scrollHint" class="scroll-hint">
+    ↓ Scroll for more resources
+  </div>
+
 </body>
 </html>
