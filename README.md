@@ -1,5 +1,8 @@
 # Librecorder
 
+The url to the live instance of Librecoder is: [https://microlab.parccommons.org/](https://microlab.parccommons.org/).
+
+# Motivation
 After acting as a judge at the Rice360 Annual Global Health Technologies Design Competition several years in a row, 
 I kept seeing similar projects using overlapping hardware and software.
 Many projects consist of a sensor read by a microcontroller or a microcomputer and acted upon by software.
