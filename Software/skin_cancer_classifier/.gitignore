@@ -1,0 +1,25 @@
+# Virtual environment
+.venv/
+
+# Python temporary files
+__pycache__/
+*.py[cod]
+
+# VS Code
+.vscode/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Do not upload the Kaggle dataset
+data/raw/
+data/splits/
+
+# Trained TensorFlow models may be large
+artifacts/*.keras
+artifacts/*.h5
+
+# Never upload credentials
+kaggle.json
+.kaggle/
