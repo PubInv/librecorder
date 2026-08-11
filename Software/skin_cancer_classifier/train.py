@@ -41,6 +41,7 @@ IMAGE_DIRS = [
     os.path.join(DATA_DIR, "HAM10000_images_part_2")
 ]
 MODELS_DIR = os.path.join(BASE_DIR, "models")
+EVALUATIONS_DIR = os.path.join(BASE_DIR, "evaluations")
 
 # The 7 HAM10000 diagnosis classes
 
@@ -327,7 +328,10 @@ def train_model(model, train_loader, val_loader, epochs=10, lr=1e-4, class_weigh
         },
     }
 
-    json_path = os.path.splitext(save_path)[0] + ".json"
+    os.makedirs(EVALUATIONS_DIR, exist_ok=True)
+
+    model_name = os.path.splitext(os.path.basename(save_path))[0]
+    json_path = os.path.join(EVALUATIONS_DIR, f"{model_name}.json")
 
     with open(json_path, "w") as f:
         json.dump(evaluations, f, indent=4)
