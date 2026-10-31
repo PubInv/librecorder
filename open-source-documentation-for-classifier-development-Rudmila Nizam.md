@@ -1,3 +1,5 @@
+# Author Rudmila Nizam, Bangladesh University of Engineering and Technology
+
 # Open Source Documentation for Classifier Development
 
 ## Skin Lesion Classification Using CNN
