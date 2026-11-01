@@ -1,0 +1,14 @@
+# LibreRecorder server dependencies (Software/WebApp)
+# Install: pip install -r requirements.txt
+
+flask>=3.1
+flask-sqlalchemy>=3.1
+flask-cors>=5.0
+pillow>=11
+numpy>=2
+
+# Optional: only needed for the malaria model (Software/processing/malaria_cnn.py)
+# torch>=2.6
+
+# Optional: only needed for the desktop upload client (Software/WebApp/upload_pic.py)
+# requests>=2.32
