@@ -12,14 +12,12 @@ Welcome. Librecorder is a [Public Invention](https://pubinv.org) project, run by
    ```bash
    pip install -r requirements.txt
    ```
-   Full steps: [setup guide](docs/codebase/setup.md).
+   See also: [setup guide](docs/setup.md).
 3. **Branch:**
    ```bash
    git checkout -b your-change-name
    ```
 4. **Open a pull request** against `main` with a description of what changed and why.
-
-Match the style of the surrounding code (for Python, [PEP 8](https://peps.python.org/pep-0008/)), and add any new server dependency to [`requirements.txt`](requirements.txt).
 
 <!-- TODO: mention PR templates here once .github/ templates exist. -->
 
@@ -36,11 +34,12 @@ Automated checks and a standard output format (issues #37 and #40) for classifie
 ## Repository rules 
 
 **Documentation:** 
-- For code changes, update the developer docs in [`docs/codebase/`](docs/codebase/README.md).
-- For research updates, add them to [`docs/research/`](docs/research/README.md).
+- For server-level changes, update the setup guide in [`setup.md`](docs/setup.md). If you added any additional dependencies, update the [`requirements.txt`](requirements.txt) too.
+- For code changes, update the architecture in [`codebase/architecture.md`](docs/codebase/architecture.md).
+- For research updates, add them to the index at [`research/README.md`](docs/research/README.md).
 
 **Never commit:**
-- Changes to databases (`*.db`, including `instance/`) or `__pycache__/*.pyc` files (running the server modifies these; see [setup](docs/codebase/setup.md#things-to-know))
+- Changes to databases (`*.db`, including `instance/`) or `__pycache__/*.pyc` files (running the server modifies these; see [setup](docs/setup.md#things-to-know))
 - `.env` files, passwords, API keys or other credentials
 - Patient or case images, uploaded case files (`uploads/`), datasets, or any personal data
 - Model weights or other large binary files
