@@ -120,6 +120,6 @@ curl -X POST -H "Content-Type: application/json" -d "{\"case_id\": \"<case_id>\"
 
 ## Next steps
 Now that you have the server running locally on your computer, you can begin contributing.
-- See how the pieces fit together: [architecture.md](codebase/architecture.md)
+- See how the pieces fit together: [architecture.md](architecture.md)
 - Start experimenting with your own model or data: [research guide](research/README.md)
 - Review the rules for contributing code: [CONTRIBUTING.md](../CONTRIBUTING.md)

@@ -2,7 +2,7 @@
 
 Welcome. Librecorder is a [Public Invention](https://pubinv.org) project, run by volunteers. There are two ways to contribute:
 
-- **With code**: backend changes, documentation, or ML classifiers. See: [architecture overview](docs/codebase/architecture.md).
+- **With code**: backend changes, documentation, or ML classifiers. See: [architecture overview](docs/architecture.md).
 - **With research**: using Librecorder to run experiments, and sharing your findings. See: [research guide](docs/research/README.md).
 
 ## Making a change
@@ -23,7 +23,7 @@ Welcome. Librecorder is a [Public Invention](https://pubinv.org) project, run by
 
 ### Merging classifiers
 
-A classifier is a single Python file loaded by the server. See [Classifier plugins](docs/codebase/architecture.md#classifier-plugins) for how they are discovered and run. Before opening a classifier PR, check that:
+A classifier is a single Python file loaded by the server. See [Classifier plugins](docs/architecture.md#classifier-plugins) for how they are discovered and run. Before opening a classifier PR, check that:
 
 - It is in `Software/processing/`, with a `MODEL_ID`, `MODEL_NAME` and a `run(image_path)` function.
 - Its code is compatible with AGPL-3.0, and any third-party code keeps its original license notice.
@@ -35,7 +35,7 @@ Automated checks and a standard output format (issues #37 and #40) for classifie
 
 **Documentation:** 
 - For server-level changes, update the setup guide in [`setup.md`](docs/setup.md). If you added any additional dependencies, update the [`requirements.txt`](requirements.txt) too.
-- For code changes, update the architecture in [`codebase/architecture.md`](docs/codebase/architecture.md).
+- For code changes, update the architecture in [`architecture.md`](docs/architecture.md).
 - For research updates, add them to the index at [`research/README.md`](docs/research/README.md).
 
 **Never commit:**

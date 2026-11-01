@@ -105,7 +105,7 @@ README.md, CONTRIBUTING.md, LICENSE
 requirements.txt          web server dependencies
 environment.yml           training environment for the malaria classifier
 docs/setup.md             setup guide
-docs/codebase/            architecture (this page)
+docs/architecture.md      architecture overview (this page)
 docs/research/            research guide and reports
 Software/
   WebApp/                 Flask server, dashboard, database
