@@ -50,4 +50,4 @@ Automated checks and a standard output format (issues #37 and #40) for classifie
 
 **Want to join Public Invention?** Follow the instructions at [pubinv.org/volunteer](https://www.pubinv.org/volunteer/).
 
-**Licensing:** *By contributing, you agree that your work is licensed under [AGPL-3.0](LICENSE).*
+**Licensing:** *By contributing, you agree that your work is licensed under [AGPL-3.0](LICENSE).* This means anyone can use, modify and share Librecorder, but anyone who distributes it, or runs a modified version as a service for others, *must* publish their source code under the same license.
