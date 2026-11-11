@@ -1,0 +1,8 @@
+Test BAcc 0.83678
+Test F1 0.85542
+Test ROC 0.97723
+Test Recall_macro 0.83678
+Test Recall_weighted 0.83604
+Val Acc 0.86783
+Val BAcc 0.81529
+Val Loss 0.86113
