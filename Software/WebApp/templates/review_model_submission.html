@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Model Submission Review | LibreRecorder</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;1,300&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}?v=modelupload1"/>
+
+  <style>
+    .review-main {
+      max-width: 1500px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 20px 24px 32px;
+      display: grid;
+      gap: 16px;
+    }
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 8px 16px;
+      font-size: 0.82rem;
+    }
+    .key {
+      font-family: var(--font-mono);
+      color: var(--ink-4);
+      text-transform: uppercase;
+      font-size: 0.72rem;
+    }
+    .val {
+      color: var(--ink-1);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .file-list {
+      padding-left: 18px;
+      display: grid;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <header class="app-header">
+    <div class="app-header-inner">
+      <div class="brand">
+        <span class="brand-mark">Libre<em>Recorder</em></span>
+        <span class="brand-sub">submission review</span>
+      </div>
+      <nav class="header-actions">
+        <a class="btn btn-outline" href="/model_submissions">Review queue</a>
+        <a class="btn btn-ghost" href="/">Workspace</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="review-main">
+    <div class="panel">
+      <div class="card-head">
+        <span class="card-title">Submission</span>
+        <span class="card-rule"></span>
+      </div>
+      <p class="card-sub">Review package metadata and uploaded files.</p>
+
+      <div class="meta-grid">
+        <div class="key">Submission ID</div><div class="val">{{ submission_id }}</div>
+        <div class="key">Storage path</div><div class="val">{{ storage_path }}</div>
+        <div class="key">Review status</div><div class="val">{{ review.status }}</div>
+        <div class="key">Reviewer</div><div class="val">{{ review.reviewer }}</div>
+        <div class="key">Review notes</div><div class="val">{{ review.notes }}</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="card-head">
+        <span class="card-title">Manifest</span>
+        <span class="card-rule"></span>
+      </div>
+      <div class="meta-grid">
+        {% for k, v in manifest.items() %}
+          <div class="key">{{ k }}</div><div class="val">{{ v }}</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="card-head">
+        <span class="card-title">Files</span>
+        <span class="card-rule"></span>
+      </div>
+      <ul class="file-list">
+        {% for f in files %}
+          <li><span class="mono">{{ f }}</span></li>
+        {% endfor %}
+      </ul>
+    </div>
+  </main>
+</div>
+</body>
+</html>

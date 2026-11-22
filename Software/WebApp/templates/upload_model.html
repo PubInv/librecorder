@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Model Submission | LibreRecorder</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;1,300&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}?v=modelupload1"/>
+
+  <style>
+    .upload-main {
+      max-width: 1500px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 20px 24px 32px;
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 20px;
+      align-items: start;
+    }
+
+    .page-title {
+      font-family: var(--font-display);
+      font-size: 1.55rem;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      color: var(--ink-0);
+      line-height: 1.15;
+      margin-bottom: 4px;
+    }
+
+    .page-sub {
+      font-size: 0.84rem;
+      color: var(--ink-3);
+      line-height: 1.55;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: flex-start;
+      justify-content: flex-end;
+    }
+
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      margin-bottom: 10px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    .field-help {
+      font-size: 0.76rem;
+      color: var(--ink-4);
+      line-height: 1.45;
+      margin-top: 2px;
+    }
+
+    .file-drop {
+      border: 1px dashed var(--rule);
+      border-radius: var(--radius-sm);
+      background: var(--card-2);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .file-row,
+    .result-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .file-trigger {
+      font-family: var(--font-body);
+      font-size: 0.82rem;
+      font-weight: 400;
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      border: 1px solid transparent;
+      display: inline-flex;
+      align-items: center;
+      white-space: nowrap;
+      background: var(--ink-0);
+      border-color: var(--ink-0);
+      color: #fff;
+    }
+
+    .file-trigger:hover {
+      background: var(--ink-2);
+      border-color: var(--ink-2);
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .file-name {
+      font-size: 0.78rem;
+      color: var(--ink-4);
+      line-height: 1.45;
+    }
+
+    .result {
+      min-height: 24px;
+      margin-top: 12px;
+    }
+
+    .result-card,
+    .error-card,
+    .progress-card {
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      background: var(--card-2);
+    }
+
+    .result-card {
+      border-color: var(--good-rule);
+      background: var(--good-bg);
+    }
+
+    .error-card {
+      border-color: var(--bad-rule);
+      background: var(--bad-bg);
+      color: var(--bad);
+    }
+
+    .progress-card {
+      background: var(--card-2);
+    }
+
+    .progress-label {
+      font-family: var(--font-mono);
+      font-size: 0.76rem;
+      color: var(--ink-2);
+      margin-bottom: 8px;
+    }
+
+    .progress-wrap {
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--rule);
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: var(--ink-0);
+      transition: width 0.2s ease;
+    }
+
+    .mono {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      word-break: break-word;
+    }
+
+    .guide-list {
+      padding-left: 18px;
+      display: grid;
+      gap: 8px;
+      color: var(--ink-3);
+      font-size: 0.8rem;
+      line-height: 1.5;
+    }
+
+    .side-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    @media (max-width: 980px) {
+      .upload-main { grid-template-columns: 1fr; }
+      .form-grid { grid-template-columns: 1fr; }
+      .hero { grid-template-columns: 1fr; }
+      .hero-actions { justify-content: flex-start; }
+    }
+  </style>
+</head>
+<body>
+<div class="app-shell">
+  <header class="app-header">
+    <div class="app-header-inner">
+      <div class="brand">
+        <span class="brand-mark">Libre<em>Recorder</em></span>
+        <span class="brand-sub">model submission intake · review before activation</span>
+      </div>
+      <nav class="header-actions">
+        <a class="btn btn-ghost" href="/">Back to workspace</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="upload-main">
+    <section>
+      <div class="hero">
+        <div>
+          <div class="page-title">Submit analytical lens</div>
+          <div class="page-sub">
+            Upload a candidate model package for review. Submissions are stored for internal vetting and are not activated automatically.
+          </div>
+        </div>
+        <div class="hero-actions">
+          <a class="btn btn-outline" href="/model_submissions">Review queue</a>
+          <a class="btn btn-outline" href="/">Cancel</a>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="card-head">
+          <span class="card-title">Submission form</span>
+          <span class="card-rule"></span>
+        </div>
+        <p class="card-sub">Submit metadata plus one or more files. The package will be written to a review folder on EC2.</p>
+
+        <form id="modelUploadForm" enctype="multipart/form-data">
+          <div class="form-grid">
+            <div class="field">
+              <label class="field-label" for="model_name">Model name</label>
+              <input class="input" id="model_name" name="model_name" required />
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="model_id">Model ID</label>
+              <input class="input" id="model_id" name="model_id" placeholder="malaria_cnn_v1" required />
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="model_version">Version</label>
+              <input class="input" id="model_version" name="model_version" placeholder="1.0.0" />
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="author">Author</label>
+              <input class="input" id="author" name="author" />
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="contact">Contact</label>
+              <input class="input" id="contact" name="contact" placeholder="email or URL" />
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="license">License</label>
+              <input class="input" id="license" name="license" placeholder="MIT, Apache-2.0, GPL-3.0..." />
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="domain">Domain</label>
+              <select class="input" id="domain" name="domain">
+                <option value="health">Health</option>
+                <option value="ecology">Ecology</option>
+                <option value="veterinary">Veterinary</option>
+                <option value="more">More</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="task">Task</label>
+              <input class="input" id="task" name="task" placeholder="classification / measurement / QC / segmentation" />
+            </div>
+
+            <div class="field full">
+              <label class="field-label" for="short_description">Short description</label>
+              <textarea class="input" id="short_description" name="short_description" placeholder="What does this model do?"></textarea>
+            </div>
+
+            <div class="field full">
+              <label class="field-label" for="tradeoff_summary">Tradeoff summary</label>
+              <textarea class="input" id="tradeoff_summary" name="tradeoff_summary" placeholder="Fast / balanced / high-detail / narrow-domain, etc."></textarea>
+            </div>
+
+            <div class="field full">
+              <label class="field-label" for="expected_input_characteristics">Expected input characteristics</label>
+              <textarea class="input" id="expected_input_characteristics" name="expected_input_characteristics" placeholder='Example: {"specimen":"blood_smear","stain":["giemsa"],"magnification":["40x","100x"],"color_mode":["rgb"]}'></textarea>
+            </div>
+
+            <div class="field full">
+              <label class="field-label" for="output_schema">Output schema</label>
+              <textarea class="input" id="output_schema" name="output_schema" placeholder='Example: {"classification":"string","confidence":"float"}'></textarea>
+            </div>
+
+            <div class="field full">
+              <label class="field-label" for="limitations">Limitations</label>
+              <textarea class="input" id="limitations" name="limitations" placeholder="Known limits, exclusions, unvalidated settings..."></textarea>
+            </div>
+
+            <div class="field full">
+              <label class="field-label" for="validation_summary">Validation summary</label>
+              <textarea class="input" id="validation_summary" name="validation_summary" placeholder="What data family was it tested on?"></textarea>
+            </div>
+
+            <div class="field full">
+              <label class="field-label" for="files">Files</label>
+              <div class="file-drop">
+                <div class="file-row">
+                  <label class="file-trigger" for="files">Choose file(s)</label>
+                  <div class="file-name" id="fileName">No files selected</div>
+                </div>
+                <div class="field-help">Upload code, weights, example inputs, README, or related package files.</div>
+              </div>
+              <input type="file" id="files" name="files" multiple required />
+            </div>
+          </div>
+
+          <div class="inline-actions">
+            <button class="btn btn-primary" id="submitBtn" type="submit">Submit model</button>
+            <a class="btn btn-ghost" href="/">Cancel</a>
+          </div>
+        </form>
+
+        <div id="result" class="result"></div>
+      </div>
+    </section>
+
+    <aside class="side-stack">
+      <div class="panel">
+        <div class="card-head">
+          <span class="card-title">Minimal submission standard</span>
+          <span class="card-rule"></span>
+        </div>
+        <ul class="guide-list">
+          <li>Stable model ID and human-readable model name</li>
+          <li>Clear domain and task</li>
+          <li>Explicit input assumptions</li>
+          <li>Explicit output schema</li>
+          <li>Tradeoff summary and limitations</li>
+          <li>License and contact information</li>
+          <li>Files needed for internal review</li>
+        </ul>
+      </div>
+
+      <div class="panel">
+        <div class="card-head">
+          <span class="card-title">Reviewer cues</span>
+          <span class="card-rule"></span>
+        </div>
+        <ul class="guide-list">
+          <li>Does the package declare what data it is meant for?</li>
+          <li>Are assumptions and limits explicit?</li>
+          <li>Is the interface likely easy to integrate?</li>
+          <li>Is the license acceptable?</li>
+          <li>Does it add a useful new analytical lens?</li>
+        </ul>
+      </div>
+    </aside>
+  </main>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const form = document.getElementById("modelUploadForm");
+  const resultBox = document.getElementById("result");
+  const fileInput = document.getElementById("files");
+  const fileName = document.getElementById("fileName");
+  const submitBtn = document.getElementById("submitBtn");
+
+  function esc(x) {
+    return String(x ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;");
+  }
+
+  function setProgress(message, pct) {
+    resultBox.innerHTML = `
+      <div class="progress-card">
+        <div class="progress-label">${esc(message)}</div>
+        <div class="progress-wrap">
+          <div class="progress-bar" style="width:${pct}%"></div>
+        </div>
+      </div>
+    `;
+  }
+
+  fileInput.addEventListener("change", () => {
+    const files = Array.from(fileInput.files || []);
+    if (!files.length) fileName.textContent = "No files selected";
+    else if (files.length === 1) fileName.textContent = files[0].name;
+    else fileName.textContent = `${files.length} files selected`;
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const files = Array.from(fileInput.files || []);
+    if (!files.length) {
+      resultBox.innerHTML = `<div class="error-card">Please select one or more files.</div>`;
+      return;
+    }
+
+    submitBtn.disabled = true;
+
+    try {
+      const data = new FormData(form);
+
+      setProgress("Submitting model package...", 25);
+
+      const res = await fetch("/submit_model", {
+        method: "POST",
+        body: data
+      });
+
+      setProgress("Finalizing submission...", 75);
+
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error || "Model submission failed");
+      }
+
+      setProgress("Submission saved.", 100);
+
+      resultBox.innerHTML = `
+        <div class="result-card">
+          <strong>Submission saved</strong>
+          <p style="margin-top:8px;"><strong>Submission ID:</strong> <span class="mono">${esc(json.submission_id)}</span></p>
+          <p><strong>Stored at:</strong> <span class="mono">${esc(json.storage_path)}</span></p>
+          <div class="result-links" style="margin-top:12px;">
+            <a class="btn btn-outline" href="/model_submission/${encodeURIComponent(json.submission_id)}" target="_blank">Open submission</a>
+            <a class="btn btn-outline" href="/model_submissions">Review queue</a>
+            <a class="btn btn-primary" href="/">Return to workspace</a>
+          </div>
+        </div>
+      `;
+      form.reset();
+      fileName.textContent = "No files selected";
+    } catch (err) {
+      resultBox.innerHTML = `<div class="error-card"><strong>Error:</strong> ${esc(err.message)}</div>`;
+    } finally {
+      submitBtn.disabled = false;
+    }
+  });
+});
+</script>
+</body>
+</html>

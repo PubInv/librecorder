@@ -1,0 +1,18 @@
+-- Datasets
+CREATE TABLE IF NOT EXISTS datasets (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT UNIQUE NOT NULL,
+  created_at TEXT NOT NULL,
+  path TEXT NOT NULL,
+  tags_json TEXT NOT NULL DEFAULT '{}'
+);
+
+-- Models
+CREATE TABLE IF NOT EXISTS models (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  model_id TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  file TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  tags_json TEXT NOT NULL DEFAULT '{}'
+);
