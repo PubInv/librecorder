@@ -1,135 +1,535 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Upload Image | LibreRecorder</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Upload Specimen | LibreRecorder</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;1,300&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}?v=20260315_project3"/>
+
   <style>
-    body {
-      background: #ffa5ab;
-      font-family: "Segoe UI", sans-serif;
-      text-align: center;
-      padding: 3rem;
+    .upload-main {
+      max-width: 1500px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 20px 24px 32px;
+      display: grid;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 20px;
+      align-items: start;
     }
-    form {
-      background: white;
-      border-radius: 8px;
-      padding: 2rem;
-      display: inline-block;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+
+    .upload-page-title {
+      font-family: var(--font-display);
+      font-size: 1.55rem;
+      font-weight: 700;
+      letter-spacing: -0.04em;
+      color: var(--ink-0);
+      line-height: 1.15;
+      margin-bottom: 4px;
     }
-    input[type=file] {
-      margin: 1rem 0;
+
+    .upload-page-sub {
+      font-size: 0.84rem;
+      color: var(--ink-3);
+      line-height: 1.55;
     }
-    button {
-      background: #450920;
-      color: #fff;
-      border: none;
-      padding: 0.7rem 1.5rem;
-      border-radius: 4px;
+
+    .upload-hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .upload-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: flex-start;
+      justify-content: flex-end;
+    }
+
+    .upload-panel {
+      background: var(--card);
+      border: 1px solid var(--rule);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+    }
+
+    .upload-form {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .upload-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    .field-help {
+      font-size: 0.76rem;
+      color: var(--ink-4);
+      line-height: 1.45;
+      margin-top: 2px;
+    }
+
+    .file-drop {
+      border: 1px dashed var(--rule);
+      border-radius: var(--radius-sm);
+      background: var(--card-2);
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .file-row,
+    .result-links,
+    .tag-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .file-trigger {
+      font-family: var(--font-body);
+      font-size: 0.82rem;
+      font-weight: 400;
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
       cursor: pointer;
+      transition: background 0.12s, border-color 0.12s, color 0.12s;
+      border: 1px solid transparent;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+      background: var(--ink-0);
+      border-color: var(--ink-0);
+      color: #fff;
     }
-    button:hover {
-      background: #7d3e23;
+
+    .file-trigger:hover {
+      background: var(--ink-2);
+      border-color: var(--ink-2);
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .file-name {
+      font-size: 0.78rem;
+      color: var(--ink-4);
+      line-height: 1.45;
+    }
+
+    .tag-select {
+      min-height: 180px;
+    }
+
+    .result {
+      min-height: 24px;
+    }
+
+    .result-card,
+    .error-card,
+    .progress-card {
+      border: 1px solid var(--rule);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      background: var(--card-2);
+    }
+
+    .result-card {
+      border-color: var(--good-rule);
+      background: var(--good-bg);
+    }
+
+    .error-card {
+      border-color: var(--bad-rule);
+      background: var(--bad-bg);
+      color: var(--bad);
+    }
+
+    .progress-card {
+      background: var(--card-2);
+    }
+
+    .progress-label {
+      font-family: var(--font-mono);
+      font-size: 0.76rem;
+      color: var(--ink-2);
+      margin-bottom: 8px;
+    }
+
+    .progress-meta {
+      font-size: 0.78rem;
+      color: var(--ink-4);
+      margin-bottom: 8px;
+    }
+
+    .progress-wrap {
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--rule);
+      overflow: hidden;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: var(--ink-0);
+      transition: width 0.2s ease;
+    }
+
+    .mono {
+      font-family: var(--font-mono);
+      font-size: 0.78rem;
+      word-break: break-word;
+    }
+
+    .guide-list {
+      padding-left: 18px;
+      display: grid;
+      gap: 8px;
+      color: var(--ink-3);
+      font-size: 0.8rem;
+      line-height: 1.5;
+    }
+
+    .guide-list li {
+      margin: 0;
+    }
+
+    .upload-side-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    @media (max-width: 980px) {
+      .upload-main {
+        grid-template-columns: 1fr;
+      }
+
+      .upload-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .upload-hero {
+        grid-template-columns: 1fr;
+      }
+
+      .upload-actions {
+        justify-content: flex-start;
+      }
     }
   </style>
 </head>
 <body>
+<div class="app-shell">
 
-<h1>Upload Image to LibreRecorder</h1>
-<form id="uploadForm" enctype="multipart/form-data">
-  <label>Case ID (leave blank for new):</label><br>
-  <input type="text" id="case_id" name="case_id" placeholder="e.g., test3"><br><br>
+  <header class="app-header">
+    <div class="app-header-inner">
+      <div class="brand">
+        <span class="brand-mark">Libre<em>Recorder</em></span>
+        <span class="brand-sub">specimens · analytical lenses · accumulated insight</span>
+      </div>
+      <nav class="header-actions">
+        <a class="btn btn-ghost" href="/">Back to study workspace</a>
+      </nav>
+    </div>
+  </header>
 
-  <label>Select File(s):</label><br>
-  <input type="file" name="files" id="file" accept=".jpg,.jpeg,.png,.txt" multiple required><br><br>
+  <main class="upload-main">
+    <section>
+      <div class="upload-hero">
+        <div>
+          <div class="upload-page-title">Upload specimen</div>
+          <div class="upload-page-sub">
+            Add new microscopy files to a new or existing specimen set, then return to the study workspace to apply analytical lenses.
+          </div>
+        </div>
 
-  <label>Add Note (optional):</label><br>
-  <textarea id="note" name="note" rows="3" cols="40" placeholder="Enter a note..."></textarea><br><br>
+        <div class="upload-actions">
+          <a class="btn btn-outline" href="/">Cancel</a>
+        </div>
+      </div>
 
-  <label>Processing Option (optional):</label><br>
-  <select id="processor" name="processor">
-    <option value="">None</option>
-    <option value="mean_pixel">Mean Pixel Value</option>
-    <option value="dark_light">Dark vs Light Classifier</option>
-  </select><br><br>
+      <div class="upload-panel">
+        <div class="card-head">
+          <span class="card-title">Upload form</span>
+          <span class="card-rule"></span>
+        </div>
+        <p class="card-sub">This page ingests files into the specimen library. Analysis happens back in the study workspace.</p>
 
-  <button type="submit">Upload</button>
-</form>
+        <form id="uploadForm" class="upload-form" enctype="multipart/form-data">
+          <div class="upload-grid">
+            <div class="field">
+              <label class="field-label" for="case_id">Case ID</label>
+              <input class="input" type="text" id="case_id" name="case_id" placeholder="Leave blank to create a new case" />
+              <div class="field-help">Use an existing case ID to append files to that specimen set.</div>
+            </div>
 
-<div id="result"></div>
+            <div class="field full">
+              <label class="field-label" for="file">Files</label>
+              <div class="file-drop">
+                <div class="file-row">
+                  <label class="file-trigger" for="file">Choose file(s)</label>
+                  <div class="file-name" id="fileName">No files selected</div>
+                </div>
+                <div class="field-help">Accepted: JPG, JPEG, PNG, TXT, TIF, TIFF. Multiple files supported.</div>
+              </div>
+              <input type="file" name="files" id="file" accept=".jpg,.jpeg,.png,.txt,.tif,.tiff" multiple required />
+            </div>
 
-<p><a href="/">← Back to Dashboard</a></p>
+            <div class="field full">
+              <label class="field-label" for="tagSelect">Tags</label>
+              <select id="tagSelect" class="input tag-select" multiple></select>
+              <div class="field-help">Hold Ctrl or Cmd to select multiple tags.</div>
+              <div class="tag-actions">
+                <a class="btn btn-outline" href="/register_tag">Add new tag</a>
+              </div>
+            </div>
 
+            <div class="field full">
+              <label class="field-label" for="note">Notes</label>
+              <textarea class="input" id="note" name="note" placeholder="Enter a note for this upload..."></textarea>
+              <div class="field-help">If provided, this will be saved as a note.txt file in the case.</div>
+            </div>
+          </div>
+
+          <div class="inline-actions">
+            <button class="btn btn-primary" id="uploadBtn" type="submit">Upload</button>
+            <a class="btn btn-ghost" href="/">Cancel</a>
+          </div>
+        </form>
+
+        <div id="result" class="result"></div>
+      </div>
+    </section>
+
+    <aside class="upload-side-stack">
+      <div class="upload-panel">
+        <div class="card-head">
+          <span class="card-title">Upload guidance</span>
+          <span class="card-rule"></span>
+        </div>
+        <p class="card-sub">Keep specimen organization clean so studies can compare lenses against well-structured inputs.</p>
+
+        <ul class="guide-list">
+          <li>Leave Case ID blank to create a new specimen set.</li>
+          <li>Provide a Case ID to add files to an existing specimen.</li>
+          <li>Select one or more tags to classify the specimen set.</li>
+          <li>Use notes to preserve context alongside the files.</li>
+          <li>Create new tags from the registration page.</li>
+          <li>TIFF microscopy files are supported.</li>
+        </ul>
+      </div>
+
+      <div class="upload-panel">
+        <div class="card-head">
+          <span class="card-title">Workflow</span>
+          <span class="card-rule"></span>
+        </div>
+        <p class="card-sub">Recommended sequence.</p>
+
+        <ul class="guide-list">
+          <li>Upload or append specimen files here.</li>
+          <li>Return to the main workspace.</li>
+          <li>Select the specimen in the left pane.</li>
+          <li>Choose one or more analytical lenses.</li>
+          <li>Run a study and compare outputs.</li>
+        </ul>
+      </div>
+    </aside>
+  </main>
+</div>
 
 <script>
-document.addEventListener("DOMContentLoaded", function() {
-  const form = document.getElementById("uploadForm");
-  const resultBox = document.getElementById("result");
+  document.addEventListener("DOMContentLoaded", function() {
+    const form = document.getElementById("uploadForm");
+    const resultBox = document.getElementById("result");
+    const fileInput = document.getElementById("file");
+    const fileName = document.getElementById("fileName");
+    const tagSelect = document.getElementById("tagSelect");
+    const uploadBtn = document.getElementById("uploadBtn");
+    const caseInput = document.getElementById("case_id");
+    const noteInput = document.getElementById("note");
 
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    resultBox.innerHTML = "<p>Uploading...</p>";
-
-    const case_id = document.getElementById("case_id").value.trim();
-    const files = document.getElementById("file").files;
-    const note = document.getElementById("note").value.trim();
-    const proc = document.getElementById("processor").value;
-
-    if (!files.length) {
-      alert("Please select one or more files.");
-      return;
+    function esc(x) {
+      return String(x ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
     }
 
-    let uploadJson;
-
-    try {
-      for (let i = 0; i < files.length; i++) {
-        const data = new FormData();
-        data.append("file", files[i]);
-        if (case_id) data.append("case_id", case_id);
-
-        const uploadRes = await fetch("/upload", { method: "POST", body: data });
-        uploadJson = await uploadRes.json();
-
-        if (!uploadJson.ok) throw new Error(uploadJson.error || "Upload failed");
-
-        if (proc) {
-          const procRes = await fetch("/process", {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: new URLSearchParams({
-              case_id: uploadJson.case_id,
-              filename: uploadJson.filename,
-              processor: proc
-            })
-          });
-          await procRes.json();
-        }
-      }
-
-      // Upload note once, after images
-      if (note) {
-        const noteData = new FormData();
-        noteData.append("file", new Blob([note], { type: "text/plain" }), "note.txt");
-        noteData.append("case_id", uploadJson.case_id);
-        await fetch("/upload", { method: "POST", body: noteData });
-      }
-
+    function setProgress(current, total, message) {
+      const pct = total > 0 ? Math.round((current / total) * 100) : 0;
       resultBox.innerHTML = `
-        <div style="background:#eef;padding:10px;border-radius:6px;">
-          <h3>Upload Complete</h3>
-          <p>Case: ${uploadJson.case_id}</p>
-          <p>Uploaded ${files.length} file(s) successfully.</p>
-          <p><a href="/render/${uploadJson.case_id}" target="_blank">View Case</a></p>
-        </div>`;
-    } catch (err) {
-      resultBox.innerHTML = `<p style="color:red;">Error: ${err.message}</p>`;
+        <div class="progress-card">
+          <div class="progress-label">${esc(message || "Uploading...")}</div>
+          <div class="progress-meta">${current} / ${total}</div>
+          <div class="progress-wrap">
+            <div class="progress-bar" style="width:${pct}%"></div>
+          </div>
+        </div>
+      `;
     }
-  });
-});
-</script>
 
-  <p><a href="/">← Back to Dashboard</a></p>
+    async function loadTags() {
+      try {
+        const res = await fetch("/api/tags");
+        const tags = await res.json();
+        tagSelect.innerHTML = "";
+        (tags || []).forEach(tag => {
+          const opt = document.createElement("option");
+          opt.value = tag;
+          opt.textContent = tag;
+          tagSelect.appendChild(opt);
+        });
+      } catch (err) {
+        console.error("Failed to load tags", err);
+      }
+    }
+
+    loadTags();
+
+    fileInput.addEventListener("change", () => {
+      const files = Array.from(fileInput.files || []);
+      if (!files.length) {
+        fileName.textContent = "No files selected";
+      } else if (files.length === 1) {
+        fileName.textContent = files[0].name;
+      } else {
+        fileName.textContent = `${files.length} files selected`;
+      }
+    });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const startingCaseId = caseInput.value.trim();
+      const files = Array.from(fileInput.files || []);
+      const note = noteInput.value.trim();
+      const selectedTags = Array.from(tagSelect.selectedOptions).map(o => o.value);
+
+      if (!files.length) {
+        resultBox.innerHTML = `<div class="error-card">Please select one or more files.</div>`;
+        return;
+      }
+
+      uploadBtn.disabled = true;
+      let activeCaseId = startingCaseId || "";
+      let lastUploadJson = null;
+
+      try {
+        const totalSteps = files.length + (note ? 1 : 0);
+        let step = 0;
+
+        for (let i = 0; i < files.length; i++) {
+          step += 1;
+          setProgress(step - 1, totalSteps, `Uploading file ${i + 1} of ${files.length}: ${files[i].name}`);
+
+          const data = new FormData();
+          data.append("file", files[i]);
+
+          if (activeCaseId) {
+            data.append("case_id", activeCaseId);
+          }
+
+          if (selectedTags.length) {
+            data.append("tags", selectedTags.join(","));
+          }
+
+          const uploadRes = await fetch("/upload", {
+            method: "POST",
+            body: data
+          });
+
+          const uploadJson = await uploadRes.json();
+
+          if (!uploadRes.ok || !uploadJson.ok) {
+            throw new Error(uploadJson.error || "Upload failed");
+          }
+
+          lastUploadJson = uploadJson;
+          activeCaseId = uploadJson.case_id;
+
+          setProgress(step, totalSteps, `Uploaded file ${i + 1} of ${files.length}: ${files[i].name}`);
+        }
+
+        if (note) {
+          step += 1;
+          setProgress(step - 1, totalSteps, "Uploading note.txt");
+
+          const noteData = new FormData();
+          noteData.append(
+            "file",
+            new Blob([note], { type: "text/plain" }),
+            "note.txt"
+          );
+          noteData.append("case_id", activeCaseId);
+
+          if (selectedTags.length) {
+            noteData.append("tags", selectedTags.join(","));
+          }
+
+          const noteRes = await fetch("/upload", {
+            method: "POST",
+            body: noteData
+          });
+
+          const noteJson = await noteRes.json();
+
+          if (!noteRes.ok || !noteJson.ok) {
+            throw new Error(noteJson.error || "Note upload failed");
+          }
+
+          setProgress(step, totalSteps, "Uploaded note.txt");
+        }
+
+        if (!lastUploadJson || !activeCaseId) {
+          throw new Error("Upload completed but no case ID was returned.");
+        }
+
+        caseInput.value = activeCaseId;
+
+        resultBox.innerHTML = `
+          <div class="result-card">
+            <strong>Upload complete</strong>
+            <p style="margin-top:8px;"><strong>Case:</strong> <span class="mono">${esc(activeCaseId)}</span></p>
+            <p><strong>Files uploaded:</strong> ${files.length}${note ? " + note.txt" : ""}</p>
+            <p><strong>Tags:</strong> ${selectedTags.length ? esc(selectedTags.join(", ")) : "None"}</p>
+            <div class="result-links" style="margin-top:12px;">
+              <a class="btn btn-outline" href="/render/${encodeURIComponent(activeCaseId)}" target="_blank">View case</a>
+              <a class="btn btn-outline" href="/rich_results/${encodeURIComponent(activeCaseId)}" target="_blank">Rich results</a>
+              <a class="btn btn-primary" href="/">Return to workspace</a>
+            </div>
+          </div>
+        `;
+      } catch (err) {
+        resultBox.innerHTML = `<div class="error-card"><strong>Error:</strong> ${esc(err.message)}</div>`;
+      } finally {
+        uploadBtn.disabled = false;
+      }
+    });
+  });
+</script>
 </body>
 </html>

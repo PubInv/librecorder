@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Model Action Visualizer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #f7f3f6;
+      color: #2d1125;
+      margin: 0;
+      padding: 24px;
+    }
+    .wrap {
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+    .card {
+      background: white;
+      border: 1px solid #d9c6d3;
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 18px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+    .bar-wrap {
+      width: 100%;
+      height: 18px;
+      background: #eee;
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 10px;
+    }
+    .bar {
+      height: 100%;
+      width: 0%;
+      background: #6b154f;
+      transition: width 0.3s ease;
+    }
+    .mono {
+      font-family: monospace;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+    }
+    th, td {
+      text-align: left;
+      border-bottom: 1px solid #eee;
+      padding: 8px;
+      vertical-align: top;
+    }
+    .ok { color: #1f7a1f; font-weight: 700; }
+    .err { color: #b00020; font-weight: 700; }
+    a.btn {
+      display: inline-block;
+      background: #6b154f;
+      color: white;
+      text-decoration: none;
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <a href="/" class="btn">← Back to dashboard</a>
+      <h1>Model Action Visualizer</h1>
+      <div><strong>Job ID:</strong> <span class="mono">{{ job_id }}</span></div>
+      <div><strong>Status:</strong> <span id="statusText">Loading...</span></div>
+      <div><strong>Dataset:</strong> <span id="caseId">-</span></div>
+      <div><strong>Model:</strong> <span id="modelId">-</span></div>
+      <div><strong>Current file:</strong> <span id="currentFile">-</span></div>
+      <div><strong>Progress:</strong> <span id="progressLabel">0%</span></div>
+      <div class="bar-wrap">
+        <div class="bar" id="progressBar"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Aggregate Result</h2>
+      <div id="aggregate" class="mono">Waiting for results...</div>
+    </div>
+
+    <div class="card">
+      <h2>Per-image Results</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>File</th>
+            <th>Status / Output</th>
+          </tr>
+        </thead>
+        <tbody id="resultsBody"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Progress Log</h2>
+      <div id="logBox" class="mono">Waiting for messages...</div>
+    </div>
+  </div>
+
+  <script>
+    const jobId = {{ job_id|tojson }};
+    let pollHandle = null;
+
+    function esc(x) {
+      return String(x ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;");
+    }
+
+    function renderJob(job) {
+      document.getElementById("statusText").textContent = job.status || "-";
+      document.getElementById("caseId").textContent = job.case_id || "-";
+      document.getElementById("modelId").textContent = job.model_id || "-";
+      document.getElementById("currentFile").textContent = job.current_file || "-";
+      document.getElementById("progressLabel").textContent =
+        `${job.progress_pct || 0}% (${job.completed_files || 0}/${job.total_files || 0})`;
+      document.getElementById("progressBar").style.width = `${job.progress_pct || 0}%`;
+
+      const agg = job.aggregate && Object.keys(job.aggregate).length
+        ? JSON.stringify(job.aggregate, null, 2)
+        : (job.error ? `Error: ${job.error}` : "No aggregate result yet.");
+      document.getElementById("aggregate").textContent = agg;
+
+      const rows = (job.per_image || []).map(item => {
+        let content = "";
+        if (item.error) {
+          content = `<span class="err">ERROR</span><br><span class="mono">${esc(item.error)}</span>`;
+        } else if (item.result) {
+          content = `<span class="ok">OK</span><br><span class="mono">${esc(JSON.stringify(item.result, null, 2))}</span>`;
+        } else {
+          content = "-";
+        }
+        return `<tr><td>${esc(item.file)}</td><td>${content}</td></tr>`;
+      }).join("");
+      document.getElementById("resultsBody").innerHTML = rows || `<tr><td colspan="2">No results yet.</td></tr>`;
+
+      const logs = (job.messages || [])
+        .map(m => `[${m.ts}] ${m.message}`)
+        .join("\n");
+      document.getElementById("logBox").textContent = logs || "No messages yet.";
+
+      if (job.status === "completed" || job.status === "failed") {
+        clearInterval(pollHandle);
+      }
+    }
+
+    async function poll() {
+      const r = await fetch(`/job_status/${encodeURIComponent(jobId)}`);
+      const data = await r.json();
+      renderJob(data);
+    }
+
+    poll();
+    pollHandle = setInterval(poll, 1000);
+  </script>
+</body>
+</html>

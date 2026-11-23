@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <title>Register New Tag | LibreRecorder</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: "Inter", sans-serif;
+      background: #fff;
+      color: #111;
+    }
+    .header {
+      background: #111;
+      color: #fff;
+      padding: 22px 24px;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 2rem;
+      font-weight: 900;
+    }
+    .wrap {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    .panel {
+      border: 1.5px solid #111;
+      border-radius: 24px;
+      overflow: hidden;
+      background: #fff;
+    }
+    .panel-head {
+      background: #111;
+      color: #fff;
+      padding: 16px 18px;
+      font-weight: 900;
+      font-size: 1.3rem;
+    }
+    .panel-body {
+      padding: 22px;
+      display: grid;
+      gap: 16px;
+    }
+    input[type="text"] {
+      width: 100%;
+      padding: 13px 14px;
+      border: 1.5px solid #111;
+      border-radius: 14px;
+      font: inherit;
+    }
+    .actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .btn {
+      border: 1.5px solid #111;
+      background: #000;
+      color: #fff;
+      border-radius: 14px;
+      min-height: 46px;
+      padding: 0 18px;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+    }
+    .btn.secondary {
+      background: #fff;
+      color: #111;
+    }
+    .result {
+      border: 1.5px solid #111;
+      border-radius: 14px;
+      background: #f6f6f6;
+      padding: 14px;
+      min-height: 24px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>LibreRecorder</h1>
+  </div>
+
+  <div class="wrap">
+    <div class="panel">
+      <div class="panel-head">Register New Tag</div>
+      <div class="panel-body">
+        <div>
+          <label for="tagName"><strong>Tag name</strong></label>
+          <input id="tagName" type="text" placeholder="e.g., blood-smear, qc, veterinary, brightfield" />
+        </div>
+
+        <div class="actions">
+          <button id="saveTag" class="btn" type="button">Save tag</button>
+          <a class="btn secondary" href="/upload_image">Back to Upload</a>
+        </div>
+
+        <div id="result" class="result"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById("saveTag").addEventListener("click", async () => {
+      const result = document.getElementById("result");
+      const tag = document.getElementById("tagName").value.trim();
+
+      if (!tag) {
+        result.textContent = "Please enter a tag name.";
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/tags", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ tag })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Failed to save tag");
+
+        result.innerHTML = `Saved tag: <strong>${data.tag}</strong><br><a href="/upload_image">Return to upload</a>`;
+        document.getElementById("tagName").value = "";
+      } catch (err) {
+        result.textContent = "Error: " + err.message;
+      }
+    });
+  </script>
+</body>
+</html>

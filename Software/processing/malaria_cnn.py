@@ -8,7 +8,16 @@ import torch.nn as nn
 
 MODEL_ID = "malaria_cnn_v1"
 MODEL_NAME = "Malaria CNN (Infected vs Uninfected)"
-
+MODEL_TAGS = {
+  "domain": "health",
+  "task": "classification",
+  "expects.label_schema": "malaria_infected_v1",
+  "expects.preproc_profile": "malaria_tiles_224_rgb_v1",
+  "compatible.specimen": ["blood_smear"],
+  "compatible.modality": ["brightfield"],
+  "compatible.stain": ["giemsa", "unknown"],
+  "compatible.magnification": ["100x", "unknown"]
+}
 # ---- model definition (copied from your predictMalaria.py) ----
 class CNNModel(nn.Module):
     def __init__(self):

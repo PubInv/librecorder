@@ -5,193 +5,1086 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1.0" />
   <title>LibreRecorder</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;1,300&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}?v=20260315_project4"/>
 
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+  <style>
+    /* ── PUBLIC PROJECTS CAROUSEL ── */
+    .public-bar {
+      background: #f5f3ee;
+      border-bottom: 1px solid #e0dbd0;
+      padding: 0 24px;
+      overflow: hidden;
+      box-sizing: border-box;
+      width: 100%;
+    }
+    .public-bar-inner {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      height: 52px;
+      min-width: 0;
+      overflow: hidden;
+    }
+    .public-bar-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: #7a7060;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .public-bar-search {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      background: #ede9e0;
+      border: 1px solid #d0c8b8;
+      border-radius: 4px;
+      padding: 4px 10px;
+      color: #2a2418;
+      outline: none;
+      width: 180px;
+      flex-shrink: 0;
+    }
+    .public-bar-search::placeholder { color: #aaa090; }
+    .public-bar-search:focus { border-color: #a09070; }
+    .public-bar-divider {
+      width: 1px;
+      height: 28px;
+      background: #d0c8b8;
+      flex-shrink: 0;
+    }
+    .public-carousel {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      flex: 1;
+      min-width: 0;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      align-items: center;
+      padding: 6px 0;
+    }
+    .public-carousel::-webkit-scrollbar { display: none; }
+    .pub-chip {
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      background: #fff;
+      border: 1px solid #ddd8cc;
+      border-radius: 6px;
+      padding: 6px 12px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      max-width: 220px;
+      min-width: 140px;
+    }
+    .pub-chip:hover { border-color: #b5882a; background: #fdf9f0; }
+    .pub-chip-title {
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      color: #1a1209;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .pub-chip-meta {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      color: #7a7060;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .pub-chip-empty {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: #aaa090;
+      white-space: nowrap;
+      padding: 0 4px;
+    }
+
+    /* ── MODE TOGGLE (more prominent) ── */
+    .mode-toggle-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+    .mode-toggle-hint {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: #7a7060;
+    }
+    /* Override the existing mode toggle to be bigger/more obvious */
+    .mode-toggle {
+      display: flex !important;
+      background: #1a1209 !important;
+      border: 1.5px solid #4a3f2f !important;
+      border-radius: 8px !important;
+      padding: 3px !important;
+      gap: 2px !important;
+    }
+    .mode-btn {
+      font-family: 'IBM Plex Mono', monospace !important;
+      font-size: 12px !important;
+      font-weight: 500 !important;
+      letter-spacing: 0.06em !important;
+      padding: 7px 18px !important;
+      border-radius: 6px !important;
+      border: none !important;
+      background: transparent !important;
+      color: #7a7060 !important;
+      cursor: pointer !important;
+      transition: background 0.18s, color 0.18s !important;
+      display: flex !important;
+      align-items: center !important;
+      gap: 7px !important;
+    }
+    .mode-btn.active {
+      background: #b5882a !important;
+      color: #1a1209 !important;
+    }
+    .mode-btn:not(.active):hover {
+      background: #2a2418 !important;
+      color: #c8b898 !important;
+    }
+    .mode-dot {
+      width: 7px !important;
+      height: 7px !important;
+      border-radius: 50% !important;
+      background: currentColor !important;
+      opacity: 0.7 !important;
+    }
+    .mode-btn.active .mode-dot { opacity: 1 !important; }
+  </style>
 </head>
-<body data-domain="health">
 
-  <header class="lr-header">
-    <h1>LibreRecorder</h1>
-    <h2>Open Access Microscopy Data and Models</h2>
+<body data-domain="health" data-mode="structured">
+<div class="app-shell">
+
+  <!-- ══ HEADER ══ -->
+  <header class="app-header">
+    <div class="app-header-inner">
+      <div class="brand">
+        <span class="brand-mark">Libre<em>Recorder</em></span>
+      </div>
+      <div class="mode-toggle-wrap">
+        <span class="mode-toggle-hint">Study design mode</span>
+        <div class="mode-toggle" id="modeToggle" role="group" aria-label="Study design mode">
+          <button class="mode-btn active" data-mode="structured"   type="button"><span class="mode-dot"></span>Structured</button>
+          <button class="mode-btn"        data-mode="unstructured" type="button"><span class="mode-dot"></span>Unstructured</button>
+        </div>
+      </div>
+      <nav class="header-actions">
+        <button class="btn btn-ghost"   id="btnQuickIntake" type="button">Quick intake</button>
+        <button class="btn btn-ghost"   type="button" onclick="window.location.href='/upload_image'">Upload specimen</button>
+        <button class="btn btn-outline" id="btnRefresh"     type="button">Refresh</button>
+      </nav>
+    </div>
   </header>
 
-  <div class="lr-wrap">
+  <!-- ══ PUBLIC PROJECTS CAROUSEL ══ -->
+  <div class="public-bar" id="publicBar">
+    <div class="public-bar-inner">
+      <span class="public-bar-label">Public studies</span>
+      <input class="public-bar-search" id="publicSearch" placeholder="Search…" autocomplete="off" />
+      <div class="public-bar-divider"></div>
+      <div class="public-carousel" id="publicCarousel">
+        <span class="pub-chip-empty" id="pubEmpty">Loading…</span>
+      </div>
+    </div>
+  </div>
 
-    <div class="topbar">
-      <div class="topbar-inner">
+  <main class="app-main">
 
-        <!-- Row 1: Domain tabs + controls -->
-        <div class="topbar-row">
-          <div class="tabs" id="domainTabs"></div>
+    <!-- ════════════════════════════════════
+         STRUCTURED LAYOUT
+    ════════════════════════════════════ -->
+    <div class="structured-layout" id="structuredLayout">
 
-          <div class="controls">
-            <input class="search" id="search" placeholder="Search case id, description, tags..." />
-            <button class="btn secondary" id="btnQuickIntake" type="button">Quick intake</button>
-            <button class="btn" type="button" onclick="window.location.href='/upload_image'">Upload</button>
-            <button class="btn secondary" id="btnRefresh" type="button">Refresh</button>
+      <!-- sticky stat strip -->
+      <div class="stat-strip stat-strip--top">
+        <div class="stat-cell"><span class="stat-label">Specimen</span><span class="stat-value" id="statSpecimen">None</span></div>
+        <div class="stat-cell"><span class="stat-label">Experiments</span><span class="stat-value" id="statExperiments">0</span></div>
+        <div class="stat-cell"><span class="stat-label">Runs</span><span class="stat-value" id="statRuns">0</span></div>
+        <div class="stat-cell"><span class="stat-label">Step</span><span class="stat-value" id="statStep">1 / 6</span></div>
+        <div class="stat-cell stat-cell--actions">
+          <button class="btn btn-outline btn-sm" id="btnNewProject" type="button">New study</button>
+          <button class="btn btn-primary btn-sm" id="btnSavePublic" type="button">Save publicly</button>
+        </div>
+      </div>
+
+      <!-- rail + steps -->
+      <div class="rail-layout">
+
+        <nav class="step-rail" id="stepRail" aria-label="Study steps">
+          <div class="rail-track"></div>
+          <button class="rail-node active"  data-step="0" type="button"><span class="rn-num">1</span><span class="rn-label">Question</span></button>
+          <button class="rail-node locked"  data-step="1" type="button"><span class="rn-num">2</span><span class="rn-label">Specimen</span></button>
+          <button class="rail-node locked"  data-step="2" type="button"><span class="rn-num">3</span><span class="rn-label">Experiments</span></button>
+          <button class="rail-node locked"  data-step="3" type="button"><span class="rn-num">4</span><span class="rn-label">Run</span></button>
+          <button class="rail-node locked"  data-step="4" type="button"><span class="rn-num">5</span><span class="rn-label">Results</span></button>
+          <button class="rail-node locked"  data-step="5" type="button"><span class="rn-num">6</span><span class="rn-label">Synthesis</span></button>
+        </nav>
+
+        <div class="steps-col" id="stepsCol">
+
+          <!-- ── 01 Research question ── -->
+          <div class="study-step open" id="step-0" data-step="0">
+            <div class="step-head" id="stepHead-0">
+              <div class="step-head-left">
+                <span class="step-idx">01</span>
+                <div>
+                  <div class="step-title">Research question</div>
+                  <div class="step-preview" id="step0-preview">Define what you are trying to learn</div>
+                </div>
+              </div>
+              <div class="step-head-right">
+                <span class="step-tag" id="step0-tag">active</span>
+                <svg class="step-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="step-body" id="stepBody-0">
+              <p class="step-guide">A well-formed research question scopes your study, guides experiment selection, and anchors interpretation. Be specific: what specimen type, what observable property, what expected direction of effect?</p>
+              <div class="step-fields">
+                <div class="field"><label class="field-label" for="studyTitle">Study title</label>
+                  <input class="input" id="studyTitle" placeholder="e.g. Cyanobacteria bloom characterisation — Lake Parc, spring 2026"/></div>
+                <div class="field"><label class="field-label" for="researchQuestion">Research question <span class="field-req">*</span></label>
+                  <textarea class="input" id="researchQuestion" rows="3" placeholder="e.g. What morphological and taxonomic evidence of cyanobacteria bloom initiation is present in pond water specimens from site A?"></textarea></div>
+                <div class="field"><label class="field-label" for="studyBackground">Background / rationale <span class="field-opt">(optional)</span></label>
+                  <textarea class="input" id="studyBackground" rows="2" placeholder="Brief context, prior observations, or motivation…"></textarea></div>
+              </div>
+              <div class="step-footer">
+                <button class="btn btn-step" id="btn-adv-0" type="button" disabled>Continue to specimen →</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── 02 Specimen selection ── -->
+          <div class="study-step locked" id="step-1" data-step="1">
+            <div class="step-head" id="stepHead-1">
+              <div class="step-head-left">
+                <span class="step-idx">02</span>
+                <div>
+                  <div class="step-title">Specimen selection</div>
+                  <div class="step-preview" id="step1-preview">Choose the specimen this study will examine</div>
+                </div>
+              </div>
+              <div class="step-head-right">
+                <span class="step-tag locked" id="step1-tag">locked</span>
+                <svg class="step-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="step-body" id="stepBody-1" style="display:none;">
+              <p class="step-guide">Select the specimen to examine. Filter by domain and status, then click a specimen to activate it. Justify your selection to strengthen the study record.</p>
+
+              <div class="filter-row-inline">
+                <input class="input input-sm" id="search" placeholder="Search id, description, tags…" autocomplete="off"/>
+                <div class="pill-row" id="domainTabs">
+                  <button class="pill active" data-domain="health"     type="button">Health</button>
+                  <button class="pill"        data-domain="ecology"    type="button">Ecology</button>
+                  <button class="pill"        data-domain="veterinary" type="button">Veterinary</button>
+                  <button class="pill"        data-domain="more"       type="button">More</button>
+                </div>
+                <div class="pill-row" id="levelTabs">
+                  <button class="pill level-pill active" data-level="Not Analyzed"     type="button">Not analyzed</button>
+                  <button class="pill level-pill"        data-level="Not for Analysis" type="button">Not for analysis</button>
+                </div>
+              </div>
+
+              <div class="two-col-step">
+                <div>
+                  <div class="col-header">
+                    <span class="col-label">Available specimens</span>
+                    <span class="count-badge" id="datasetsCount">0</span>
+                  </div>
+                  <div id="emptyState" class="empty-state">No specimens match this view.</div>
+                  <div class="list" id="datasetsList"></div>
+                </div>
+                <div>
+                  <div class="selected-specimen-card" id="selectedSpecimenCard">
+                    <div class="ssc-label">Active specimen</div>
+                    <div class="ssc-value" id="selectedDatasetLabel">None selected</div>
+                  </div>
+                  <div class="field" style="margin-top:12px;">
+                    <label class="field-label" for="specimenJustification">Selection justification <span class="field-opt">(optional)</span></label>
+                    <textarea class="input" id="specimenJustification" rows="5" placeholder="Why is this specimen appropriate? Note collection conditions, provenance, or caveats…"></textarea>
+                  </div>
+                </div>
+              </div>
+
+              <div class="step-footer">
+                <button class="btn btn-step" id="btn-adv-1" type="button" disabled>Continue to experiments →</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── 03 Experiment selection & hypotheses ── -->
+          <div class="study-step locked" id="step-2" data-step="2">
+            <div class="step-head" id="stepHead-2">
+              <div class="step-head-left">
+                <span class="step-idx">03</span>
+                <div>
+                  <div class="step-title">Experiment selection &amp; hypotheses</div>
+                  <div class="step-preview" id="step2-preview">Choose analytical experiments and state a hypothesis for each</div>
+                </div>
+              </div>
+              <div class="step-head-right">
+                <span class="step-tag locked" id="step2-tag">locked</span>
+                <svg class="step-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="step-body" id="stepBody-2" style="display:none;">
+              <p class="step-guide">Each experiment is an analytical lens with a known tradeoff. Select one or more, then state what you expect to observe and why — this becomes your hypothesis of record.</p>
+              <div class="two-col-step">
+                <div>
+                  <div class="col-header">
+                    <span class="col-label">Available experiments</span>
+                    <span class="count-badge" id="modelsCount">0</span>
+                  </div>
+                  <div class="list" id="modelsList"></div>
+                </div>
+                <div>
+                  <div class="col-header"><span class="col-label">Hypotheses</span></div>
+                  <div class="hypothesis-col" id="hypothesisCol">
+                    <div class="hyp-empty" id="hypEmpty">Select an experiment to write a hypothesis</div>
+                  </div>
+                </div>
+              </div>
+              <div class="step-footer">
+                <button class="btn btn-step" id="btn-adv-2" type="button" disabled>Continue to run →</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── 04 Run ── -->
+          <div class="study-step locked" id="step-3" data-step="3">
+            <div class="step-head" id="stepHead-3">
+              <div class="step-head-left">
+                <span class="step-idx">04</span>
+                <div>
+                  <div class="step-title">Run experiments</div>
+                  <div class="step-preview" id="step3-preview">Execute selected experiments against the active specimen</div>
+                </div>
+              </div>
+              <div class="step-head-right">
+                <span class="step-tag locked" id="step3-tag">locked</span>
+                <svg class="step-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="step-body" id="stepBody-3" style="display:none;">
+              <p class="step-guide">Review your study configuration before executing. Each experiment runs independently and results accumulate in the next step.</p>
+              <div class="preflight-grid">
+                <div class="preflight-row"><span class="preflight-key">Specimen</span><span class="preflight-val" id="pf-specimen">—</span></div>
+                <div class="preflight-row"><span class="preflight-key">Experiments</span><span class="preflight-val" id="pf-experiments">—</span></div>
+                <div class="preflight-row"><span class="preflight-key">Question</span><span class="preflight-val" id="pf-question">—</span></div>
+                <div class="preflight-row"><span class="preflight-key">Hypotheses</span><span class="preflight-val" id="pf-hypotheses">—</span></div>
+              </div>
+              <div class="step-footer">
+                <button class="btn btn-run" id="btnRunSelected" type="button" disabled>
+                  <svg width="12" height="12" viewBox="0 0 12 12"><polygon points="2,1 11,6 2,11" fill="currentColor"/></svg>
+                  Run experiments
+                </button>
+                <span class="step-note" id="saveStatus">Results will appear in step 5.</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── 05 Results ── -->
+          <div class="study-step locked" id="step-4" data-step="4">
+            <div class="step-head" id="stepHead-4">
+              <div class="step-head-left">
+                <span class="step-idx">05</span>
+                <div>
+                  <div class="step-title">Results</div>
+                  <div class="step-preview" id="step4-preview">Experiment outputs accumulate here</div>
+                </div>
+              </div>
+              <div class="step-head-right">
+                <span class="step-tag locked" id="step4-tag">locked</span>
+                <svg class="step-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="step-body" id="stepBody-4" style="display:none;">
+              <p class="step-guide">Each experiment's output appears below alongside your stated hypothesis. Review before proceeding to synthesis.</p>
+              <div id="workspaceEmpty" class="workspace-empty">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1"/><line x1="10" y1="6" x2="10" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="10" cy="13" r="0.75" fill="currentColor"/></svg>
+                <span class="we-title">No runs yet</span>
+                <span class="we-sub">Complete the Run step to see results.</span>
+              </div>
+              <div class="study-runs" id="projectRuns"></div>
+              <div class="step-footer" id="step4footer" style="display:none;">
+                <button class="btn btn-step" id="btn-adv-4" type="button">Continue to synthesis →</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── 06 Synthesis ── -->
+          <div class="study-step locked" id="step-5" data-step="5">
+            <div class="step-head" id="stepHead-5">
+              <div class="step-head-left">
+                <span class="step-idx">06</span>
+                <div>
+                  <div class="step-title">Synthesis</div>
+                  <div class="step-preview" id="step5-preview">The story of this study</div>
+                </div>
+              </div>
+              <div class="step-head-right">
+                <span class="step-tag locked" id="step5-tag">locked</span>
+                <svg class="step-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </div>
+            </div>
+            <div class="step-body" id="stepBody-5" style="display:none;">
+              <p class="step-guide">A structured narrative generated from your study record. Edit before publishing.</p>
+              <div class="synthesis-card" id="synthesisCard"></div>
+              <div class="field" style="margin-top:14px;">
+                <label class="field-label" for="synthesisNotes">Interpretation &amp; next steps <span class="field-opt">(optional)</span></label>
+                <textarea class="input" id="synthesisNotes" rows="3" placeholder="Additional interpretation, caveats, or recommended follow-up…"></textarea>
+              </div>
+              <div class="step-footer">
+                <button class="btn btn-primary" id="btnSavePublic2" type="button">Save study publicly</button>
+                <button class="btn btn-outline"  id="btnNewProject2"  type="button">New study</button>
+                <span class="step-note" id="projectPersistenceLabel">Session only</span>
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /steps-col -->
+      </div><!-- /rail-layout -->
+    </div><!-- /structured-layout -->
+
+
+    <!-- ════════════════════════════════════
+         UNSTRUCTURED LAYOUT
+    ════════════════════════════════════ -->
+    <div class="unstructured-layout" id="unstructuredLayout" style="display:none;">
+      <aside class="control-pane" id="controlPane">
+
+        <section class="pane-section is-expanded" data-pane-section="filters">
+          <div class="section-head">
+            <h3 class="section-title">Library filters</h3>
+            <button class="pane-toggle" type="button" data-pane-toggle="filters" aria-expanded="true">Collapse</button>
+          </div>
+          <div class="pane-body" id="paneBody-filters">
+            <input class="search" id="search-u" placeholder="specimen id, description, tags…" autocomplete="off"/>
+            <div class="pill-row" id="domainTabs-u">
+              <button class="pill active" data-domain="health"     type="button">Health</button>
+              <button class="pill"        data-domain="ecology"    type="button">Ecology</button>
+              <button class="pill"        data-domain="veterinary" type="button">Veterinary</button>
+              <button class="pill"        data-domain="more"       type="button">More</button>
+            </div>
+            <div class="pill-row" id="levelTabs-u">
+              <button class="pill level-pill active" data-level="Not Analyzed"     type="button">Not analyzed</button>
+              <button class="pill level-pill"        data-level="Not for Analysis" type="button">Not for analysis</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="pane-section" data-pane-section="specimens">
+          <div class="section-head">
+            <h3 class="section-title">Specimens</h3>
+            <div class="section-head-right">
+              <span class="count-badge" id="datasetsCount-u">0</span>
+              <button class="pane-toggle" type="button" data-pane-toggle="specimens" aria-expanded="false">Expand</button>
+            </div>
+          </div>
+          <div class="pane-body" id="paneBody-specimens">
+            <div id="emptyState-u" class="empty-state">No specimens match this view.</div>
+            <div class="list" id="datasetsList-u"></div>
+          </div>
+        </section>
+
+        <section class="pane-section" data-pane-section="models">
+          <div class="section-head">
+            <h3 class="section-title">Experiments</h3>
+            <div class="section-head-right">
+              <span class="count-badge" id="modelsCount-u">0</span>
+              <button class="pane-toggle" type="button" data-pane-toggle="models" aria-expanded="false">Expand</button>
+            </div>
+          </div>
+          <div class="pane-body" id="paneBody-models">
+            <div class="list" id="modelsList-u"></div>
+          </div>
+        </section>
+
+        <section class="pane-section pane-section--last">
+          <div class="section-head"><h3 class="section-title">Study tools</h3></div>
+          <div class="inline-actions">
+            <button class="btn btn-outline" id="btnNewProject-u"   type="button">New study</button>
+            <button class="btn btn-ghost"   id="btnClearProject-u" type="button">Clear session</button>
+          </div>
+          <p class="save-status" id="saveStatus-u">Session only — persists while this tab is open.</p>
+        </section>
+
+      </aside>
+
+      <section class="study-pane">
+        <div class="study-hero">
+          <div class="study-title-block">
+            <h2 class="study-display-title" id="projectTitleDisplay">Untitled Study</h2>
+            <p class="study-display-q" id="projectQuestionDisplay">Start a study by giving it a question, choosing a specimen, and selecting experiments.</p>
+          </div>
+          <div class="hero-actions">
+            <button class="btn btn-outline" id="btnRunSelected-u" type="button" disabled>Run selected experiments</button>
+            <button class="btn btn-primary" id="btnSavePublic-u"  type="button">Save publicly</button>
           </div>
         </div>
 
-        <!-- Row 2: Level tabs -->
-        <div class="tabs" id="levelTabs"></div>
+        <div class="stat-strip">
+          <div class="stat-cell"><span class="stat-label">Active specimen</span><span class="stat-value" id="selectedDatasetLabel-u">None</span></div>
+          <div class="stat-cell"><span class="stat-label">Experiments</span><span class="stat-value" id="selectedModelLabel-u">0</span></div>
+          <div class="stat-cell"><span class="stat-label">Study runs</span><span class="stat-value" id="projectRunCount-u">0</span></div>
+          <div class="stat-cell"><span class="stat-label">Persistence</span><span class="stat-value" id="projectPersistenceLabel-u">Session only</span></div>
+        </div>
 
-      </div>
-    </div>
+        <div class="study-composer">
+          <div class="card">
+            <div class="card-head"><span class="card-title">Study definition</span><span class="card-rule"></span></div>
+            <p class="card-sub">The project is the inquiry, not a training job.</p>
+            <div class="field"><label class="field-label" for="projectTitle">Study title</label><input class="input" id="projectTitle" placeholder="Wetlands algae survey — spring 2026"/></div>
+            <div class="field"><label class="field-label" for="projectQuestion">Scientific question</label><textarea class="input" id="projectQuestion" placeholder="What can I learn about this specimen set?"></textarea></div>
+            <div class="field"><label class="field-label" for="projectNotes">Notes</label><textarea class="input" id="projectNotes" placeholder="Context, provenance, caveats…"></textarea></div>
+          </div>
+          <div class="card">
+            <div class="card-head"><span class="card-title">Current study summary</span><span class="card-rule"></span></div>
+            <p class="card-sub">Summarizes the in-browser session state.</p>
+            <div class="summary-box">
+              <div class="summary-list">
+                <div class="summary-item"><span class="summary-key">Specimen</span><span class="summary-val" id="summarySpecimen">None selected</span></div>
+                <div class="summary-item"><span class="summary-key">Experiments</span><span class="summary-val" id="summaryModels">None</span></div>
+                <div class="summary-item"><span class="summary-key">Question</span><span class="summary-val" id="summaryQuestion">—</span></div>
+                <div class="summary-item"><span class="summary-key">Status</span><span class="summary-val" id="summaryStatus">Ephemeral.</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-    <div id="emptyState" class="empty">
-      No datasets match this view. Upload or change filters.
-    </div>
+        <div class="card card--workspace">
+          <div class="card-head"><span class="card-title">Study workspace</span><span class="card-rule"></span></div>
+          <p class="card-sub">Experiment outputs accumulate here.</p>
+          <div id="workspaceEmpty-u" class="workspace-empty">
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="8" stroke="currentColor" stroke-width="1"/><line x1="10" y1="6" x2="10" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="10" cy="13" r="0.75" fill="currentColor"/></svg>
+            <span class="we-title">No study runs yet</span>
+            <span class="we-sub">Choose a specimen, select experiments, then run.</span>
+          </div>
+          <div class="study-runs" id="projectRuns-u"></div>
+        </div>
+      </section>
+    </div><!-- /unstructured-layout -->
 
-<!-- DATA + MODELS ROW -->
-<section id="dmRow" class="dm-row">
-  <div class="panel">
-    <div class="panel-head">
-      <div class="panel-title">Datasets</div>
-      <div class="panel-meta" id="datasetsCount">0</div>
+  </main>
+</div>
+
+<!-- ══ MODAL ══ -->
+<div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title" id="modalTitle">Specimen metadata</span><button class="btn btn-ghost" id="btnCloseModal" type="button">Close</button></div>
+    <div class="modal-body">
+      <div class="modal-field"><label class="field-label" for="m_case">Case ID</label><input class="input" id="m_case" placeholder="Existing case id"/></div>
+      <div class="modal-field"><label class="field-label" for="m_domain">Domain</label><select class="input select" id="m_domain"><option value="health">Health</option><option value="ecology">Ecology</option><option value="veterinary">Veterinary</option><option value="more">More</option></select></div>
+      <div class="modal-field"><label class="field-label" for="m_level">Level</label><select class="input select" id="m_level"><option value="Not Analyzed">Not Analyzed</option><option value="Not for Analysis">Not for Analysis</option></select></div>
+      <div class="modal-field modal-field--full"><label class="field-label" for="m_desc">Description</label><input class="input" id="m_desc" placeholder="Short description"/></div>
+      <div class="modal-field modal-field--full"><label class="field-label" for="m_tags">Tags <span class="field-hint">comma-separated</span></label><input class="input" id="m_tags" placeholder="microscopy, soil, blood-smear…"/></div>
+      <div class="modal-field modal-field--full"><label class="field-label" for="m_notes">Notes</label><textarea class="input" id="m_notes"></textarea></div>
     </div>
-    <div class="panel-body" id="datasetsList"></div>
+    <div class="modal-actions"><button class="btn btn-ghost" id="btnCancelModal" type="button">Cancel</button><button class="btn btn-primary" id="btnSaveModal" type="button">Save</button></div>
   </div>
+</div>
 
-  <div class="panel">
-    <div class="panel-head">
-      <div class="panel-title">Models</div>
-      <div class="panel-meta" id="modelsCount">0</div>
-    </div>
-    <div class="panel-body" id="modelsList"></div>
-  </div>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}?v=20260315_project4"></script>
 
-  <!-- Run bar -->
-  <div class="runbar" id="runbar">
-    <div class="runbar-left">
-      <div class="runchip">
-        <span class="k">Dataset:</span>
-        <span id="selectedDatasetLabel">None</span>
-      </div>
-      <div class="runchip">
-        <span class="k">Model:</span>
-        <span id="selectedModelLabel">None</span>
-      </div>
-    </div>
+<script>
+(function () {
+  const SESSION_KEY = "librecorder_session_v4";
 
-    <div class="runbar-right">
-      <span class="run-status" id="runStatus"></span>
-      <button class="btn" id="btnRunModel" type="button" disabled>Run</button>
-    </div>
-  </div>
-</section>
+  /* ══ PUBLIC PROJECTS CAROUSEL ══ */
+  let allPublicProjects = [];
 
-    <!-- Resources panel -->
-    <section class="resource-panel">
-      <div class="resource-nav">
-        <div class="resource-title">Resources</div>
-        <button class="resource-tab active" data-panel="docs" type="button">Documentation</button>
-        <button class="resource-tab" data-panel="students" type="button">For Students</button>
-        <button class="resource-tab" data-panel="researchers" type="button">For Researchers</button>
-      </div>
+  async function loadPublicProjects() {
+    const carousel = document.getElementById("publicCarousel");
+    const empty    = document.getElementById("pubEmpty");
+    try {
+      const r = await fetch("/public_projects");
+      if (!r.ok) throw new Error("fetch failed");
+      const data = await r.json();
+      allPublicProjects = Array.isArray(data) ? data : (Array.isArray(data.projects) ? data.projects : []);
+    } catch(e) {
+      allPublicProjects = [];
+    }
+    renderPublicCarousel("");
+  }
 
-      <div class="resource-content">
-        <div class="resource-view active" id="panel-docs">
-          <h3>Documentation</h3>
-          <p>
-            LibreRecorder captures, organizes, and analyzes field and laboratory datasets
-            with traceable metadata and reproducible workflows.
-          </p>
-          <ul>
-            <li>Dataset lifecycle overview</li>
-            <li>Processing pipelines</li>
-            <li>Metadata conventions</li>
-          </ul>
+  function renderPublicCarousel(query) {
+    const carousel = document.getElementById("publicCarousel");
+    const empty    = document.getElementById("pubEmpty");
+    if (!carousel) return;
+    const q = (query||"").toLowerCase().trim();
+    const filtered = q
+      ? allPublicProjects.filter(p =>
+          (p.title||"").toLowerCase().includes(q) ||
+          (p.question||"").toLowerCase().includes(q) ||
+          (p.case_label||"").toLowerCase().includes(q) ||
+          (p.project_id||"").toLowerCase().includes(q)
+        )
+      : allPublicProjects;
+
+    carousel.innerHTML = "";
+    if (!filtered.length) {
+      const el = document.createElement("span");
+      el.className = "pub-chip-empty";
+      el.textContent = allPublicProjects.length ? "No matches." : "No public studies yet.";
+      carousel.appendChild(el);
+      return;
+    }
+    filtered.forEach(p => {
+      const chip = document.createElement("div");
+      chip.className = "pub-chip";
+      chip.title = p.question || p.title || p.project_id;
+      chip.innerHTML = `<span class="pub-chip-title">${esc(p.title || p.project_id || "Untitled")}</span>
+        <span class="pub-chip-meta">${esc(p.case_label || p.case_id || "")}${p.case_label||p.case_id ? " · " : ""}${esc(p.project_id||"")}</span>`;
+      chip.addEventListener("click", () => {
+        /* future: load this project into session */
+        alert("Study: " + (p.project_id||"") + "\n\n" + (p.question || "No question recorded."));
+      });
+      carousel.appendChild(chip);
+    });
+  }
+
+  const pubSearch = document.getElementById("publicSearch");
+  if (pubSearch) {
+    pubSearch.addEventListener("input", function() { renderPublicCarousel(this.value); });
+  }
+
+  loadPublicProjects();
+
+  /* ══ MODE TOGGLE ══ */
+  const modeToggle         = document.getElementById("modeToggle");
+  const structuredLayout   = document.getElementById("structuredLayout");
+  const unstructuredLayout = document.getElementById("unstructuredLayout");
+
+  modeToggle.querySelectorAll(".mode-btn").forEach(btn => {
+    btn.addEventListener("click", function () {
+      const mode = this.dataset.mode;
+      document.body.setAttribute("data-mode", mode);
+      modeToggle.querySelectorAll(".mode-btn").forEach(b => b.classList.toggle("active", b.dataset.mode === mode));
+      structuredLayout.style.display   = mode === "structured"   ? "" : "none";
+      unstructuredLayout.style.display = mode === "unstructured" ? "" : "none";
+    });
+  });
+
+  /* ══ SESSION STATE ══ */
+  let proj = {
+    title: "", question: "", background: "", specimenJustification: "",
+    selectedCaseId: null, selectedCaseLabel: "",
+    selectedModels: [], hypotheses: {}, runs: [],
+    synthesisNotes: "", isPublicSaved: false
+  };
+
+  function loadProj() {
+    try { const r = sessionStorage.getItem(SESSION_KEY); if (r) proj = Object.assign(proj, JSON.parse(r)); }
+    catch(e) {}
+  }
+  function saveProj() { try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(proj)); } catch(e) {} }
+  function clearProj() { sessionStorage.removeItem(SESSION_KEY); window.location.reload(); }
+
+  function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function safe(x) { return String(x??'').trim(); }
+
+  /* ══ STEP MACHINE ══ */
+  const STEPS   = 6;
+  const unlocked = [true, false, false, false, false, false];
+  let   openIdx  = 0;
+
+  function railNode(i)  { return document.querySelector(`.rail-node[data-step="${i}"]`); }
+  function stepEl(i)    { return document.getElementById(`step-${i}`); }
+  function stepBody(i)  { return document.getElementById(`stepBody-${i}`); }
+  function stepTag(i)   { return document.getElementById(`step${i}-tag`); }
+
+  function applyStepClass(i, cls) {
+    const el = stepEl(i), rn = railNode(i), tag = stepTag(i);
+    if (el)  el.className  = `study-step ${cls}`;
+    if (rn)  rn.className  = `rail-node ${cls}`;
+    if (tag) { tag.className = `step-tag ${cls}`; tag.textContent = cls === "complete" ? "complete" : cls === "open" ? "active" : "locked"; }
+  }
+
+  function openStep(i) {
+    if (!unlocked[i]) return;
+    openIdx = i;
+    for (let s = 0; s < STEPS; s++) {
+      const b = stepBody(s);
+      const ch = stepEl(s) && stepEl(s).querySelector(".step-chevron");
+      if (b)  b.style.display = s === i ? "" : "none";
+      if (ch) ch.style.transform = s === i ? "rotate(180deg)" : "";
+    }
+    const ss = document.getElementById("statStep");
+    if (ss) ss.textContent = `${i + 1} / ${STEPS}`;
+  }
+
+  function completeAndAdvance(from) {
+    applyStepClass(from, "complete");
+    const to = from + 1;
+    if (to < STEPS) {
+      unlocked[to] = true;
+      applyStepClass(to, "open");
+      openStep(to);
+    }
+    syncStatStrip();
+  }
+
+  /* rail node clicks */
+  document.querySelectorAll(".rail-node").forEach(rn => {
+    rn.addEventListener("click", function () {
+      const i = parseInt(this.dataset.step);
+      if (unlocked[i]) openStep(i);
+    });
+  });
+
+  /* step head clicks */
+  for (let i = 0; i < STEPS; i++) {
+    const head = document.getElementById(`stepHead-${i}`);
+    if (head) head.addEventListener("click", (function(idx) {
+      return function () { if (unlocked[idx]) openStep(idx); };
+    })(i));
+  }
+
+  /* ══ SYNC STAT STRIP ══ */
+  function syncStatStrip() {
+    const spec = document.getElementById("statSpecimen");
+    const exps = document.getElementById("statExperiments");
+    const runs = document.getElementById("statRuns");
+    if (spec) spec.textContent = proj.selectedCaseLabel || proj.selectedCaseId || "None";
+    if (exps) exps.textContent = String((proj.selectedModels||[]).length);
+    if (runs) runs.textContent = String((proj.runs||[]).length);
+
+    /* unstructured */
+    [["selectedDatasetLabel-u", proj.selectedCaseLabel||"None"],
+     ["selectedModelLabel-u",   String((proj.selectedModels||[]).length)],
+     ["projectRunCount-u",      String((proj.runs||[]).length)],
+     ["selectedDatasetLabel",   proj.selectedCaseLabel||"None"],
+     ["summarySpecimen",        proj.selectedCaseLabel||"None selected"],
+     ["summaryModels",          (proj.selectedModels||[]).join(", ")||"None"],
+     ["summaryQuestion",        proj.question||"—"],
+     ["summaryStatus",          proj.isPublicSaved?"Publicly saved.":"Ephemeral."],
+     ["projectRunCount",        String((proj.runs||[]).length)],
+    ].forEach(([id, val]) => { const el = document.getElementById(id); if (el) el.textContent = val; });
+
+    /* run buttons */
+    const canRun = !!(proj.selectedCaseId && (proj.selectedModels||[]).length);
+    ["btnRunSelected","btnRunSelected-u"].forEach(id => {
+      const b = document.getElementById(id); if (b) b.disabled = !canRun;
+    });
+    const adv1 = document.getElementById("btn-adv-1"); if (adv1) adv1.disabled = !proj.selectedCaseId;
+    const adv2 = document.getElementById("btn-adv-2"); if (adv2) adv2.disabled = !(proj.selectedModels||[]).length;
+
+    /* preflight */
+    const pfs = document.getElementById("pf-specimen");   if (pfs) pfs.textContent = proj.selectedCaseLabel || proj.selectedCaseId || "—";
+    const pfe = document.getElementById("pf-experiments"); if (pfe) pfe.textContent = (proj.selectedModels||[]).join(", ") || "—";
+    const pfq = document.getElementById("pf-question");   if (pfq) pfq.textContent = proj.question || "—";
+    const pfh = document.getElementById("pf-hypotheses");
+    if (pfh) {
+      const hyps = proj.hypotheses || {};
+      const hArr = Object.entries(hyps).filter(([,v])=>v).map(([k,v])=>`${k}: ${v.slice(0,60)}${v.length>60?'…':''}`);
+      pfh.textContent = hArr.length ? hArr.join(" | ") : "—";
+    }
+
+    /* previews */
+    const p0 = document.getElementById("step0-preview"); if (p0 && proj.question) p0.textContent = proj.question.slice(0,90)+(proj.question.length>90?"…":"");
+    const p1 = document.getElementById("step1-preview"); if (p1 && proj.selectedCaseLabel) p1.textContent = proj.selectedCaseLabel;
+    const p2 = document.getElementById("step2-preview"); if (p2 && (proj.selectedModels||[]).length) p2.textContent = proj.selectedModels.length+" experiment(s) selected";
+    const p4 = document.getElementById("step4-preview"); if (p4 && (proj.runs||[]).length) p4.textContent = proj.runs.length+" run(s)";
+
+    /* persistence label */
+    ["projectPersistenceLabel","projectPersistenceLabel-u"].forEach(id => {
+      const el = document.getElementById(id); if (el) el.textContent = proj.isPublicSaved ? "Public + session" : "Session only";
+    });
+  }
+
+  /* ══ STEP 0 — QUESTION ══ */
+  const titleEl = document.getElementById("studyTitle");
+  const qEl     = document.getElementById("researchQuestion");
+  const bgEl    = document.getElementById("studyBackground");
+  const adv0    = document.getElementById("btn-adv-0");
+
+  function checkStep0() {
+    const hasQ = safe(qEl && qEl.value);
+    if (adv0) adv0.disabled = !hasQ;
+    proj.title      = titleEl ? titleEl.value : "";
+    proj.question   = qEl     ? qEl.value     : "";
+    proj.background = bgEl    ? bgEl.value    : "";
+    saveProj();
+    syncStatStrip();
+    /* mirror to unstructured */
+    const ptd = document.getElementById("projectTitleDisplay");    if (ptd) ptd.textContent = proj.title || "Untitled Study";
+    const pqd = document.getElementById("projectQuestionDisplay"); if (pqd) pqd.textContent = proj.question || "Start a study…";
+    const pt  = document.getElementById("projectTitle");           if (pt)  pt.value  = proj.title;
+    const pq  = document.getElementById("projectQuestion");        if (pq)  pq.value  = proj.question;
+  }
+  [titleEl, qEl, bgEl].forEach(el => el && el.addEventListener("input", checkStep0));
+  if (adv0) adv0.addEventListener("click", () => completeAndAdvance(0));
+
+  /* ══ SPECIMEN DISPLAY ══ */
+  function setActiveSpecimen(caseId, label) {
+    proj.selectedCaseId    = caseId;
+    proj.selectedCaseLabel = label;
+    saveProj();
+    const ssdv = document.getElementById("selectedDatasetLabel");
+    const ssdc = document.getElementById("selectedSpecimenCard");
+    if (ssdv) ssdv.textContent = label || "None selected";
+    if (ssdc) ssdc.classList.toggle("has-value", !!caseId);
+    syncStatStrip();
+  }
+
+  const advBtn1 = document.getElementById("btn-adv-1");
+  if (advBtn1) advBtn1.addEventListener("click", () => completeAndAdvance(1));
+
+  /* ══ HYPOTHESIS CARDS ══ */
+  function syncHypothesisCards() {
+    const col   = document.getElementById("hypothesisCol");
+    const empty = document.getElementById("hypEmpty");
+    if (!col) return;
+    const models = proj.selectedModels || [];
+    col.querySelectorAll(".hyp-card").forEach(c => {
+      if (!models.includes(c.dataset.model)) c.remove();
+    });
+    if (!models.length) { if (empty) empty.style.display = ""; return; }
+    if (empty) empty.style.display = "none";
+    models.forEach(modelId => {
+      if (col.querySelector(`.hyp-card[data-model="${CSS.escape(modelId)}"]`)) return;
+      const card = document.createElement("div");
+      card.className = "hyp-card";
+      card.dataset.model = modelId;
+      const saved = (proj.hypotheses||{})[modelId] || "";
+      card.innerHTML = `<div class="hyp-model">${esc(modelId)}</div>
+        <div class="field">
+          <label class="field-label" for="hyp-${esc(modelId)}">Hypothesis</label>
+          <textarea class="input" id="hyp-${esc(modelId)}" rows="3"
+            placeholder="What do you expect this experiment to reveal, and why?"
+            data-model="${esc(modelId)}">${esc(saved)}</textarea>
+        </div>`;
+      card.querySelector("textarea").addEventListener("input", function () {
+        if (!proj.hypotheses) proj.hypotheses = {};
+        proj.hypotheses[this.dataset.model] = this.value;
+        saveProj();
+        syncStatStrip();
+      });
+      col.appendChild(card);
+    });
+    const adv2 = document.getElementById("btn-adv-2");
+    if (adv2) adv2.disabled = !models.length;
+  }
+  const advBtn2 = document.getElementById("btn-adv-2");
+  if (advBtn2) advBtn2.addEventListener("click", () => completeAndAdvance(2));
+
+  /* ══ RUN ══ */
+  async function runExperiments() {
+    const caseId   = proj.selectedCaseId;
+    const modelIds = proj.selectedModels || [];
+    if (!caseId || !modelIds.length) { alert("Choose a specimen and at least one experiment."); return; }
+    ["btnRunSelected","btnRunSelected-u"].forEach(id => { const b=document.getElementById(id); if(b){b.disabled=true; b.textContent="Running…";} });
+    try {
+      for (const modelId of modelIds) {
+        const r    = await fetch("/start_model_run", { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({case_id:caseId, model_id:modelId}) });
+        const data = await r.json();
+        if (!r.ok||!data.ok) throw new Error(data.error||`Failed: ${modelId}`);
+        const lid = `run_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
+        proj.runs.unshift({ local_id:lid, job_id:data.job_id, case_id:caseId, model_id:modelId,
+          timestamp:new Date().toLocaleString(), status:"queued", progress_pct:0, note:"Run queued." });
+        saveProj(); renderRuns(); pollJob(data.job_id, lid);
+      }
+      if (!unlocked[4]) completeAndAdvance(3);
+    } catch(err) { alert("Run failed: "+err.message); }
+    finally { ["btnRunSelected","btnRunSelected-u"].forEach(id => { const b=document.getElementById(id); if(b){b.disabled=false; b.textContent="Run experiments";}  }); }
+  }
+
+  async function pollJob(jobId, lid) {
+    let att = 0;
+    while (att++ < 180) {
+      try {
+        const r = await fetch(`/job_status/${encodeURIComponent(jobId)}`);
+        if (!r.ok) { updateRun(lid,{status:"failed",note:`Error ${r.status}`}); return; }
+        const job = await r.json();
+        updateRun(lid,{status:job.status||"queued",progress_pct:job.progress_pct??0,
+          note:job.status==="completed"?"Run completed.":job.status==="failed"?(job.error||"Failed."):job.current_file?`Processing ${job.current_file}`:"In progress…",
+          started_at:job.started_at||null,finished_at:job.finished_at||null});
+        if (job.status==="completed"||job.status==="failed") return;
+      } catch(err) { updateRun(lid,{status:"failed",note:`Poll error: ${err}`}); return; }
+      await new Promise(res=>setTimeout(res,2000));
+    }
+    updateRun(lid,{status:"failed",note:"Timed out."});
+  }
+
+  function updateRun(lid, patch) {
+    const i = proj.runs.findIndex(r=>r.local_id===lid);
+    if (i===-1) return;
+    proj.runs[i] = {...proj.runs[i],...patch};
+    saveProj(); renderRuns(); syncStatStrip();
+  }
+
+  /* ══ RENDER RUNS ══ */
+  function statusCls(s) { return s==="completed"?"tag--good":s==="running"||s==="queued"?"tag--warn":s==="failed"?"tag--bad":""; }
+
+  function renderRuns() {
+    const runs = proj.runs||[];
+    /* structured */
+    const we  = document.getElementById("workspaceEmpty");  if(we)  we.style.display  = runs.length?"none":"";
+    const pr  = document.getElementById("projectRuns");
+    const sf  = document.getElementById("step4footer");     if(sf)  sf.style.display  = runs.length?"":"none";
+    if (pr) {
+      pr.innerHTML = "";
+      runs.forEach((run,idx) => {
+        const hyp = (proj.hypotheses||{})[run.model_id]||"";
+        const c = document.createElement("div"); c.className = "run-card";
+        c.innerHTML = `<div class="run-card-head">
+          <div class="run-card-left">
+            <div class="run-model-name">${esc(run.model_id||"Run "+(idx+1))}</div>
+            <div class="run-meta"><span>${esc(run.case_id||"")}</span><span>${esc(run.timestamp||"")}</span>${run.progress_pct!=null?`<span>${run.progress_pct}%</span>`:""}</div>
+          </div>
+          <span class="run-tag ${statusCls(run.status)}">${esc(run.status||"queued")}</span>
         </div>
+        ${hyp?`<div class="run-hypothesis"><span class="run-hyp-label">Hypothesis</span><span>${esc(hyp)}</span></div>`:""}
+        <div class="run-insight">${esc(run.note||"Run launched.")}</div>`;
+        pr.appendChild(c);
+      });
+    }
+    /* unstructured */
+    const weU = document.getElementById("workspaceEmpty-u"); if(weU) weU.style.display = runs.length?"none":"";
+    const prU = document.getElementById("projectRuns-u");
+    if (prU) {
+      prU.innerHTML = "";
+      runs.forEach((run,idx) => {
+        const c = document.createElement("div"); c.className="run-card";
+        c.innerHTML=`<div class="run-card-head"><div class="run-card-left"><div class="run-model-name">${esc(run.model_id||"Run "+(idx+1))}</div><div class="run-meta"><span>${esc(run.case_id||"")}</span><span>${esc(run.timestamp||"")}</span></div></div><span class="run-tag ${statusCls(run.status)}">${esc(run.status||"queued")}</span></div><div class="run-insight">${esc(run.note||"")}</div>`;
+        prU.appendChild(c);
+      });
+    }
+    ["projectRunCount","projectRunCount-u"].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=String(runs.length); });
+  }
 
-        <div class="resource-view" id="panel-students">
-          <h3>For Students</h3>
-          <p>
-            Learn microscopy, annotation, and scientific data handling through real datasets.
-          </p>
-          <ul>
-            <li>Guided intake workflows</li>
-            <li>Hands-on labeling tasks</li>
-            <li>Skill-aligned datasets</li>
-          </ul>
-        </div>
+  /* ══ SYNTHESIS ══ */
+  function generateSynthesis() {
+    const card = document.getElementById("synthesisCard");
+    if (!card) return;
+    const runs  = proj.runs||[];
+    const mods  = proj.selectedModels||[];
+    const hyps  = proj.hypotheses||{};
+    const items = [
+      `<strong>Research question</strong><br>${esc(proj.question||"Not stated")}`,
+      `<strong>Specimen examined</strong><br>${esc(proj.selectedCaseLabel||proj.selectedCaseId||"Not recorded")}`,
+      mods.length ? `<strong>Experiments run</strong><br>${mods.map(esc).join(", ")}` : null,
+      ...mods.filter(m=>hyps[m]).map(m=>`<strong>Hypothesis — ${esc(m)}</strong><br>${esc(hyps[m])}`),
+      runs.length ? `<strong>Runs completed</strong><br>${runs.filter(r=>r.status==="completed").length} of ${runs.length}` : `<strong>Findings</strong><br>No runs completed yet.`,
+      ...runs.filter(r=>r.status==="completed"&&r.note).map(r=>`<strong>Finding — ${esc(r.model_id||"run")}</strong><br>${esc(r.note)}`),
+      `<strong>Next steps</strong><br>Review findings against hypotheses. Determine whether the research question is answered or requires further specimen collection.`
+    ].filter(Boolean);
+    card.innerHTML = `<ul class="synthesis-bullets">${items.map(b=>`<li>${b}</li>`).join("")}</ul>`;
+  }
 
-        <div class="resource-view" id="panel-researchers">
-          <h3>For Researchers</h3>
-          <p>
-            Structured pipelines for reproducible analysis and collaborative review.
-          </p>
-          <ul>
-            <li>Cross-domain datasets</li>
-            <li>Analysis provenance</li>
-            <li>Export & citation support</li>
-          </ul>
-        </div>
-      </div>
-    </section>
+  const stepHead5 = document.getElementById("stepHead-5");
+  if (stepHead5) stepHead5.addEventListener("click", generateSynthesis);
 
-  </div>
+  const adv4 = document.getElementById("btn-adv-4");
+  if (adv4) adv4.addEventListener("click", () => { generateSynthesis(); completeAndAdvance(4); });
 
-  <!-- Modal -->
-  <div class="modal-backdrop" id="modalBackdrop" style="display:none;">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-      <div class="modal-head">
-        <h3 id="modalTitle">Dataset metadata</h3>
-        <button class="btn secondary" id="btnCloseModal" type="button">Close</button>
-      </div>
+  /* ══ SAVE PUBLICLY ══ */
+  async function savePublicly(btnId) {
+    const payload = {title:safe(proj.title),question:safe(proj.question),notes:safe(proj.synthesisNotes),
+      case_id:proj.selectedCaseId,case_label:proj.selectedCaseLabel,
+      models:proj.selectedModels||[],runs:proj.runs||[],hypotheses:proj.hypotheses||{}};
+    if (!payload.title&&!payload.question&&!payload.case_id&&!payload.models.length) { alert("Build at least part of a study first."); return; }
+    const btn = document.getElementById(btnId);
+    if (btn) { btn.disabled=true; btn.textContent="Saving…"; }
+    try {
+      const r    = await fetch("/save_public_project",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+      const data = await r.json();
+      if (!r.ok||!data.ok) throw new Error(data.error||"Save failed.");
+      proj.isPublicSaved=true; saveProj(); syncStatStrip();
+      /* refresh carousel after save */
+      loadPublicProjects();
+      alert(`Study saved publicly as ${data.project_id}.`);
+    } catch(err) { alert("Save failed: "+err.message); }
+    finally { if (btn) { btn.disabled=false; btn.textContent=btnId.includes("2")?"Save study publicly":"Save study publicly"; } }
+  }
 
-      <div class="modal-body">
-        <div>
-          <label for="m_case">Case ID</label>
-          <input id="m_case" placeholder="Existing case id (upload first)" />
-        </div>
+  /* ══ SYNTHESIS NOTES ══ */
+  const synEl = document.getElementById("synthesisNotes");
+  if (synEl) synEl.addEventListener("input", function () { proj.synthesisNotes=this.value; saveProj(); });
 
-        <div>
-          <label for="m_domain">Domain</label>
-          <select id="m_domain">
-            <option value="health">Health</option>
-            <option value="ecology">Ecology</option>
-            <option value="veterinary">Veterinary</option>
-            <option value="more">More</option>
-          </select>
-        </div>
+  /* ══ UNSTRUCTURED FORM ══ */
+  const ptEl = document.getElementById("projectTitle");
+  const pqEl = document.getElementById("projectQuestion");
+  const pnEl = document.getElementById("projectNotes");
+  [ptEl, pqEl, pnEl].forEach(el => el && el.addEventListener("input", function () {
+    proj.title    = ptEl?ptEl.value:"";
+    proj.question = pqEl?pqEl.value:"";
+    saveProj(); syncStatStrip();
+    const ptd = document.getElementById("projectTitleDisplay");    if(ptd) ptd.textContent=proj.title||"Untitled Study";
+    const pqd = document.getElementById("projectQuestionDisplay"); if(pqd) pqd.textContent=proj.question||"Start a study…";
+    if (titleEl&&titleEl.value!==proj.title) titleEl.value=proj.title;
+    if (qEl&&qEl.value!==proj.question)      qEl.value=proj.question;
+  }));
 
-        <div>
-          <label for="m_level">Level</label>
-          <select id="m_level">
-            <option value="Not Analyzed">Not Analyzed</option>
-            <option value="Not for Analysis">Not for Analysis</option>
-          </select>
-        </div>
+  /* ══ WIRE BUTTONS ══ */
+  ["btnSavePublic","btnSavePublic-u","btnSavePublic2"].forEach(id => {
+    const b=document.getElementById(id); if(b) b.addEventListener("click",()=>savePublicly(id));
+  });
+  ["btnNewProject","btnNewProject-u","btnNewProject2"].forEach(id => {
+    const b=document.getElementById(id); if(b) b.addEventListener("click",clearProj);
+  });
+  ["btnClearProject","btnClearProject-u"].forEach(id => {
+    const b=document.getElementById(id); if(b) b.addEventListener("click",clearProj);
+  });
+  ["btnRunSelected","btnRunSelected-u"].forEach(id => {
+    const b=document.getElementById(id); if(b) b.addEventListener("click",runExperiments);
+  });
 
-        <div style="grid-column:1 / -1;">
-          <label for="m_desc">Description</label>
-          <input id="m_desc" placeholder="Short description" />
-        </div>
+  const btnRef = document.getElementById("btnRefresh");
+  if (btnRef) btnRef.addEventListener("click", () => window.location.reload());
 
-        <div style="grid-column:1 / -1;">
-          <label for="m_tags">Tags (comma-separated)</label>
-          <input id="m_tags" placeholder="microscopy, soil, blood-smear, qc, ..." />
-        </div>
+  /* ══ GLOBALS FOR dashboard.js ══ */
+  window.selectedCaseId    = null;
+  window.selectedCaseLabel = "";
+  window.selectedModelIds  = [];
+  window.selectedModelId   = null;
 
-        <div style="grid-column:1 / -1;">
-          <label for="m_notes">Notes</label>
-          <textarea id="m_notes" placeholder="Any notes for this dataset..."></textarea>
-        </div>
-      </div>
+  window.syncLibreRecorderProjectSelection = function () {
+    const caseId  = window.selectedCaseId || null;
+    const label   = window.selectedCaseLabel || caseId || "";
+    const models  = Array.isArray(window.selectedModelIds) ? window.selectedModelIds : [];
+    if (caseId) setActiveSpecimen(caseId, label);
+    if (models.length !== proj.selectedModels.length || models.some((m,i)=>m!==proj.selectedModels[i])) {
+      proj.selectedModels = [...new Set(models.map(x=>safe(x)).filter(Boolean))];
+      saveProj(); syncHypothesisCards(); syncStatStrip();
+    }
+    renderRuns();
+  };
 
-      <div class="modal-actions">
-        <button class="btn secondary" id="btnCancelModal" type="button">Cancel</button>
-        <button class="btn" id="btnSaveModal" type="button">Save</button>
-      </div>
-    </div>
-  </div>
+  /* ══ RESTORE SESSION ══ */
+  loadProj();
+  if (proj.question && titleEl) titleEl.value = proj.title;
+  if (proj.question && qEl)     qEl.value     = proj.question;
+  if (proj.background && bgEl)  bgEl.value    = proj.background;
+  if (proj.synthesisNotes && synEl) synEl.value = proj.synthesisNotes;
+  if (ptEl) ptEl.value = proj.title;
+  if (pqEl) pqEl.value = proj.question;
+  checkStep0();
+  syncHypothesisCards();
+  renderRuns();
+  syncStatStrip();
 
-  <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+  document.addEventListener("click", () => setTimeout(() => {
+    if (window.syncLibreRecorderProjectSelection) window.syncLibreRecorderProjectSelection();
+  }, 40));
 
-  <div id="scrollHint" class="scroll-hint">
-    ↓ Scroll for more resources
-  </div>
-
+  window.libreRecorderSessionProject = proj;
+})();
+</script>
 </body>
 </html>
